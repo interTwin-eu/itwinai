@@ -5,6 +5,36 @@ This page shows you how to run a complete machine learning workflow with itwinai
 steps. This example demonstrates distributed training with SLURM integration, plugin usage, and
 pipeline configuration all in a single configuration file.
 
+This guide shows how to use the ``itwinai run`` command, which is a single entry
+point to install an itwinai plugin, define an ML workflow and its
+hyperparameters, and submit a distributed AI job on a SLURM cluster. This is
+made possible thanks to the integration within the same configuration file of:
+plugin configuration, SLURM cluster configuration, and ML workflow definition
+(including hyperparameters).
+
+If you want to know more about how to use the ``itwinai run`` command, please
+refer to the official CLI reference for `run
+<https://itwinai.readthedocs.io/stable/api/cli_reference.html#run>`__.
+
+.. note::
+
+   **Difference between** ``itwinai run`` **and** ``itwinai exec-pipeline``
+
+   - ``itwinai run`` receives a configuration file that includes configuration for plugins, the
+     SLURM cluster, and ML workflows, and it takes care of executing the complete workflow
+     end-to-end.
+
+     See the official CLI reference for
+     `run <https://itwinai.readthedocs.io/stable/api/cli_reference.html#run>`__.
+
+   - ``itwinai exec-pipeline`` is more low-level and is designed to receive only the
+     configuration of an ML workflow (a.k.a. a "pipeline"). It does not take care of SLURM
+     submission or plugin installation: it only executes the ML workload described by the
+     pipeline, i.e., a subset of the configuration that ``itwinai run`` would use.
+
+     See the official CLI reference for
+     `exec-pipeline <https://itwinai.readthedocs.io/stable/api/cli_reference.html#exec-pipeline>`__.
+
 Prerequisites
 -------------
 
@@ -16,43 +46,46 @@ Steps
 -----
 
 1. Create a configuration file, e.g. ``config.yaml``, that contains a pipeline, the required
-   plugins and a SLURM configuration, as follows:
+   plugins, and a SLURM configuration, as follows:
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
+      plugins:
+        - <my first required plugin>
+        - <my second required plugin>
 
-   plugins:
-   - <my first required plugin>
-   - <my second required plugin>
+      slurm_config:
+        job_name: my-job-name
+        account: my-billing-account
+        partition: my-partition
+        submit_job: true   # Set this if you actually want to submit the job
+        save_script: true  # Set this if you want to store the generated SLURM script(s)
+        pre_exec_file: <path or URL to pre-execution file for current system>
 
-   slurm_config:
-     job_name: my-job-name
-     account: my-billing-account
-     partition: my-partition
-     submit_job: true # This has to be set if you actually want to launch the job
-     save_script: true # If you wish to store the resulting SLURM script(s) to file
-     pre_exec_file: <path or URL to pre-execution file for current system>
+        # Any other SLURM configuration options you want to set.
+        # Check out the SLURM builder for more information.
+        ...
 
-     # and any other SLURM configuration options you want to set. Check out the SLURM
-     # builder for more information
-     ...
-        
-
-
-   # Your pipeline. You can name it whatever you want, but make sure to change the 
-   # ``pipe_key`` variable to match it.
-   training_pipeline:
-     _target_: itwinai.pipeline.Pipeline
-     steps:
-       dataloading_step:
-         ...
-      
+      # Your pipeline. You can name it whatever you want, but make sure to set
+      # the ``pipe_key`` variable accordingly.
+      training_pipeline:
+        _target_: itwinai.pipeline.Pipeline
+        steps:
+          dataloading_step:
+            ...
 
 2. Run the workflow:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-   itwinai run -c run_config.yaml
+      itwinai run -c run_config.yaml
+
+   The command above will install the dependencies and produce a SLURM job script, but it will not
+   submit the job to SLURM. To also submit the job to the SLURM queue, add the ``-j`` option:
+
+   .. code-block:: bash
+
+      itwinai run -jc run_config.yaml
 
 MNIST Example
 -------------
@@ -73,7 +106,7 @@ using the itwinai MNIST plugin. This simplified example shows the key components
 
    # Install the itwinai MNIST plugin from GitHub
    plugins:
-   - git+https://github.com/matbun/itwinai-mnist-plugin.git
+     - git+https://github.com/matbun/itwinai-mnist-plugin.git
 
    # SLURM configuration for Vega HPC system
    slurm_config:
@@ -110,15 +143,16 @@ using the itwinai MNIST plugin. This simplified example shows the key components
              - _target_: itwinai.loggers.ConsoleLogger
              - _target_: itwinai.loggers.MLFlowLogger
                experiment_name: MNIST classifier
-        ... # The rest of the pipeline is omitted for the sake of readability
+       ... # The rest of the pipeline is omitted for the sake of readability
 
 .. note::
-   
-   This example has been simplified for readability. The full configuration includes additional 
-   parameters, hyperparameter optimization settings, detailed metrics, and more complete pipeline 
+
+   This example has been simplified for readability. The full configuration includes additional
+   parameters, hyperparameter optimization settings, detailed metrics, and more complete pipeline
    steps. For a working example, please refer to ``use-cases/mnist/torch/run-example.yaml``.
 
-**Key Components:**
+Key Components
+~~~~~~~~~~~~~~
 
 - **Plugin**: Uses the ``itwinai-mnist-plugin`` which provides MNIST-specific components (based on the code in ``use-cases/mnist/torch/``)
 - **SLURM**: Configured for Vega HPC system with 2 GPU nodes  
@@ -132,10 +166,10 @@ see the full example at ``use-cases/mnist/torch/run-example.yaml``. You can run 
 
 .. code-block:: bash
 
-   itwinai run -c https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
+   itwinai run -jc https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
 
 What This Example Does
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 This configuration demonstrates several key itwinai features:
 
@@ -154,7 +188,7 @@ This configuration demonstrates several key itwinai features:
   Configured for 2-node distributed training using DDP (Distributed Data Parallel) strategy.
 
 Expected Output
----------------
+~~~~~~~~~~~~~~~
 
 When you run this example, itwinai will:
 
