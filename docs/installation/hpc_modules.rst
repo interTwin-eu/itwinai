@@ -5,7 +5,8 @@ to load for your application, contact your system administrator or refer to your
 documentation for specific guidance.
 
 Find below the modules you should load on the supercomputers where we tested itwinai, depending
-on whether you want ``PyTorch`` or ``TensorFlow`` support:
+on whether you want ``PyTorch`` or ``TensorFlow`` support. If you are deploying itwinai on a
+different HPC system, please refer to the *Other HPCs* tab.
 
 
 .. tab-set::
@@ -93,8 +94,9 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
     .. tab-item:: LUMI
 
         On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_, Python virtual
-        environments are discouraged in favour of containers. Load the following modules before
-        running commands in your AI containers:
+        environments are discouraged in favour of containers as they create a large number
+        of files, which affect the performances of the distributed storage system.
+        Load the following modules before running commands in your AI containers:
 
             .. code-block:: bash
 
