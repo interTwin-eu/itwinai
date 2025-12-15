@@ -190,5 +190,17 @@ different HPC system, please refer to the *Other HPCs* tab.
                 # Optional (only if needed by your setup)
                 ml <libaio>
 
+        .. note::
+        
+            While itwinai does not strictly require specific versions of CUDA, MPI
+            or related libraries, deploying on a new HPC system can still expose
+            compatibility issues (e.g., between the CUDA runtime, the framework
+            build, and MPI/toolchain choices). We therefore encourage users to try a
+            small set of software versions when setting up a new environment.
+            Support for additional systems depends on contributor availability, but
+            we welcome reports and improvements: please open a GitHub issue to share
+            your findings, or submit a pull request with documentation updates that
+            worked on your platform.
+
 After using the commands above to load the modules, check which modules you loaded by running
 the ``ml`` command in the terminal.
