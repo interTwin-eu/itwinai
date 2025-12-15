@@ -6,7 +6,7 @@ documentation for specific guidance.
 
 Find below the modules you should load on the supercomputers where we tested itwinai, depending
 on whether you want ``PyTorch`` or ``TensorFlow`` support. If you are deploying itwinai on a
-different HPC system, please refer to the *Other HPCs* tab.
+different HPC system, please refer to the **Other HPCs** tab.
 
 
 .. tab-set::
