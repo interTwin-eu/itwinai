@@ -27,8 +27,8 @@ want to do this with or without GPU (CUDA) support:
 
         .. code-block:: bash
 
-            uv pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
-            uv pip install --no-cache-dir --no-build-isolation deepspeed
+            uv pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git@3a31d93
+            uv pip install --no-cache-dir --no-build-isolation deepspeed==0.16.8
 
     
     .. tab-item:: CUDA
@@ -40,7 +40,7 @@ want to do this with or without GPU (CUDA) support:
 
 .. warning::
    
-    Horovod requires ``CMake>=1.13`` and 
+    Horovod requires ``CMake>=3.13`` and 
     `other packages <https://horovod.readthedocs.io/en/latest/install_include.html#requirements>`_
     Make sure to have them installed in your environment before proceeding.
 
