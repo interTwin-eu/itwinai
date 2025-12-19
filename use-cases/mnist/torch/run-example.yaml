@@ -35,7 +35,7 @@ slurm_config:
   pipe_key: training_pipeline
   experiment_name: "MNIST classifier"
   run_name: "main-run"
-  dist_strat: ddp
+  dist_strat: ${strategy}
   
   config_name: run-example  # Assuming this is the name of this file
   config_path: .  # Assuming that run-example.yaml is in the current directory
