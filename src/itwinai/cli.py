@@ -566,7 +566,7 @@ def generate_slurm(
     pipe_key: Annotated[
         str,
         typer.Option("--pipe-key", help="Which pipe key to use for running the pipeline."),
-    ] = "rnn_training_pipeline",
+    ] = "training_pipeline",
     mode: Annotated[
         str,
         typer.Option(
