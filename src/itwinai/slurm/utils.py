@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import io
@@ -86,7 +87,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_distributed_strategy = "ddp"
     default_config_file_path = "."
     default_config_file = "config"
-    default_pipe_key = "rnn_training_pipeline"
+    default_pipe_key = "training_pipeline"
     default_container_path = None
     default_experiment_name = "main-experiment"
     default_run_name = "main-run"
