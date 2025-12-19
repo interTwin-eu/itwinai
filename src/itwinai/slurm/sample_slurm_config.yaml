@@ -37,7 +37,7 @@ dist_strat: ddp
 # Path to python virtual environment (if needed)
 python_venv: .venv
 # Experiment name
-exp_name: my_experiment
+experiment_name: my_experiment
 # Name of a run belonging to some experiment
 run_name: my_run
 # Key of the itwinai pipeline to select in the config file 
@@ -47,7 +47,9 @@ config_name: config
 # Path to the directory containing the configuration file
 config_path: .
 
-# Make sure the below strategy matches the one above
+# Training command to be executed.
+# This provides a string template which fields are replaced using the above
+# configuration entries.
 training_cmd: | 
   $(which itwinai) exec-pipeline \
   --config-name={config_name} \
