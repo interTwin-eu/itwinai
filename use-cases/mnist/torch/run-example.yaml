@@ -32,6 +32,9 @@ slurm_config:
   num_nodes: 2
   submit_job: true
   save_script: true
+  config_path: .
+  config_name: run-example
+  pipe_key: training_pipeline
 
   pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/src/itwinai/slurm/system-base-scripts/vega_pre_exec.sh
 
