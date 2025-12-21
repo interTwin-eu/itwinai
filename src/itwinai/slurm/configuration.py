@@ -51,6 +51,8 @@ class SlurmScriptConfiguration(BaseModel):
 
     #: Number of nodes requested. Defaults to 1.
     num_nodes: int = 1
+    #: Total number of tasks, on all nodes. Defaults to None (computed dynamically).
+    num_tasks: int | None = None
     #: Number of tasks per node. Defaults to 1.
     num_tasks_per_node: int = 1
     #: GPUs per node requested. Defaults to 4.
@@ -113,6 +115,12 @@ class SlurmScriptConfiguration(BaseModel):
                 " fields before generating script! Configuration was formatted as follows:\n"
                 f"{repr(self)}"
             )
+
+        # Compute num_tasks if needed
+        self.num_tasks = (
+            self.num_tasks if self.num_tasks is not None
+            else self.num_nodes * self.num_tasks_per_node
+        )
 
         return SLURM_TEMPLATE.format_map(
             self.model_dump() | {"exclusive_line": self.exclusive_line()}
