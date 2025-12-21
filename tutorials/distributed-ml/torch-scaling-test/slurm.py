@@ -11,8 +11,8 @@
 
 from argparse import ArgumentParser
 
-from itwinai.slurm.script_builder import generate_default_slurm_script
 from itwinai.slurm.configuration import MLSlurmBuilderConfig
+from itwinai.slurm.script_builder import generate_default_slurm_script
 
 
 def main():
@@ -20,7 +20,11 @@ def main():
     parser.add_argument(
         "--distributed-strategy", choices=["ddp", "horovod", "deepspeed"], default="ddp"
     )
-    parser.add_argument("--mode", choices=["single", "runall", "scaling-test"], default="single")
+    parser.add_argument(
+        "--mode",
+        choices=["single", "runall", "scaling-test"],
+        default="single",
+    )
     parser.add_argument(
         "--scalability-nodes",
         default="1,2,4,8",

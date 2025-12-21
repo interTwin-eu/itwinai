@@ -499,21 +499,22 @@ def _load_slurm_builder_config(
 
     Args:
         config_path (str): Path or URL to the SLURM configuration file.
-        submit_job (bool | None, optional): Override for submitting the job; when None, use value
-            from the config.
-        save_script (bool | None, optional): Override for saving the generated SLURM script; when
-            None, use value from the config.
-        expect_nested (bool, optional): Whether to load the SLURM config from a ``slurm_config``
-            section inside the root config.
+        submit_job (bool | None, optional): Override for submitting the job; when None, use
+            value from the config.
+        save_script (bool | None, optional): Override for saving the generated SLURM script;
+            when None, use value from the config.
+        expect_nested (bool, optional): Whether to load the SLURM config from a
+            ``slurm_config`` section inside the root config.
 
     Returns:
-        tuple[MLSlurmBuilderConfig, DictConfig | ListConfig | None]: Validated SLURM configuration
-            and the root configuration if a nested structure was expected.
+        tuple[MLSlurmBuilderConfig, DictConfig | ListConfig | None]: Validated SLURM
+            configuration and the root configuration if a nested structure was expected.
     """
     from omegaconf import DictConfig, ListConfig, OmegaConf
     from pydantic import ValidationError
-    from itwinai.utils import retrieve_remote_omegaconf_file
+
     from itwinai.slurm.configuration import MLSlurmBuilderConfig
+    from itwinai.utils import retrieve_remote_omegaconf_file
 
     if not OmegaConf.has_resolver("itwinai.cwd"):
         OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
@@ -578,7 +579,7 @@ def run(
     from itwinai.slurm.script_builder import generate_default_slurm_script
 
     validated_slurm_config, root_config = _load_slurm_builder_config(
-        config_path=config, 
+        config_path=config,
         submit_job=submit_job,
         save_script=save_script,
         expect_nested=True,
@@ -724,7 +725,7 @@ def exec_pipeline(
 
     # Inject global overrides if provided. This increases the compatibility with the SLURM
     # script builder, which may need to dynamically override strategy and run_name, which
-    # must always be accepted by exec-pipeline 
+    # must always be accepted by exec-pipeline
     if strategy:
         # Use '+' to allow creation if the field is missing in the config
         sys.argv.append(f"+strategy={strategy}")

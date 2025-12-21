@@ -10,15 +10,6 @@ configuration
    :member-order: bysource
 
 
-constants
-+++++++++
-.. automodule:: itwinai.slurm.constants
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :member-order: bysource
-
-
 script_builder
 ++++++++++++++
 .. automodule:: itwinai.slurm.script_builder

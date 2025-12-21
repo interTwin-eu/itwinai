@@ -133,4 +133,4 @@ type
    :members:
    :undoc-members:
    :show-inheritance:
-   :member-order: bysource   :member-order: bysource
+   :member-order: bysource

@@ -18,27 +18,27 @@ import typer
 from requests.exceptions import RequestException
 from validators import url
 
+from itwinai.slurm.configuration import MLSlurmBuilderConfig, SlurmScriptConfiguration
 from itwinai.slurm.constants import (
     DEFAULT_PY_SPY_DIR,
     DEFAULT_SLURM_LOG_DIR,
 )
-from itwinai.slurm.configuration import MLSlurmBuilderConfig, SlurmScriptConfiguration
 from itwinai.slurm.utils import retrieve_remote_file
 
 cli_logger = logging.getLogger("cli_logger")
 
 class SlurmScriptBuilder:
     """Base builder for SLURM scripts that handles defaults, execution prep, and dispatch.
-        
+
     Args:
         config (SlurmScriptConfiguration): configuration object.
-        
+
     Note:
         The provided ``SlurmScriptConfiguration`` may be modified while preparing the script.
     """
-    
+
     config: SlurmScriptConfiguration
-    
+
     def __init__(self, config: SlurmScriptConfiguration):
         self.config = config
 
@@ -217,7 +217,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
     Note:
         The given configuration object might be modified by some of the methods.
     """
-    
+
     config: MLSlurmBuilderConfig
 
     def __init__(self, config: MLSlurmBuilderConfig):
@@ -269,7 +269,8 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             )
             py_spy_output_file = Path(DEFAULT_PY_SPY_DIR) / py_spy_profiling_filename
             base_cmd = (
-                f"py-spy-{base_cmd} '{self.config.profiling_sampling_rate}' '{py_spy_output_file}'"
+                f"py-spy-{base_cmd} '{self.config.profiling_sampling_rate}' "
+                f"'{py_spy_output_file}'"
             )
 
         base_cmd += f" '{self.config.build_training_command()}'"
