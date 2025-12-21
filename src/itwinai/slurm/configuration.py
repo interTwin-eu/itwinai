@@ -88,9 +88,11 @@ class SlurmScriptConfiguration(BaseModel):
         description=("Directory to write the generated SLURM script. "
         f"Defaults to {DEFAULT_SLURM_SAVE_DIR}"),
     )
-    #: Path/URL to a pre-exec file to load content from. Defaults to None.
+    #: Path/URL to a pre-exec file to load content from. Ignored if not provided.
+    #: Defaults to None.
     pre_exec_file: str | None = None
-    #: Path/URL to an exec file to load content from. Defaults to None.
+    #: Path/URL to an exec file to load content from. Ignored if not provided.
+    #: Defaults to None.
     exec_file: str | None = None
 
     def exclusive_line(self) -> str:
