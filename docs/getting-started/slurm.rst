@@ -176,11 +176,11 @@ configuration file:
     partition: develbooster
 
     # Which distributed strategy/framework to use    
-    dist_strat: ddp # "ddp", "deepspeed" or "horovod"
+    distributed_strategy: ddp # "ddp", "deepspeed" or "horovod"
 
-    std_out: slurm_job_logs/${dist_strat}.out
-    err_out: slurm_job_logs/${dist_strat}.err
-    job_name: ${dist_strat}-job
+    std_out: slurm_job_logs/${distributed_strategy}.out
+    err_out: slurm_job_logs/${distributed_strategy}.err
+    job_name: ${distributed_strategy}-job
 
     num_nodes: 1
     gpus_per_node: 4

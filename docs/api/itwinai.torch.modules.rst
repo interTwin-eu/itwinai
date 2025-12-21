@@ -2,8 +2,8 @@ itwinai.torch
 =============
 
 
-config.py
-++++++++++++++++++
+config
+++++++
 .. automodule:: itwinai.torch.config
    :members:
    :undoc-members:
@@ -11,8 +11,8 @@ config.py
    :member-order: bysource
 
 
-distributed.py
-++++++++++++++
+distributed
++++++++++++
 .. automodule:: itwinai.torch.distributed
    :members:
    :undoc-members:
@@ -20,8 +20,8 @@ distributed.py
    :member-order: bysource
 
 
-gan.py
-++++++++++++++
+gan
++++
 .. automodule:: itwinai.torch.gan
    :members:
    :undoc-members:
@@ -29,8 +29,8 @@ gan.py
    :member-order: bysource
 
 
-inference.py
-++++++++++++
+inference
++++++++++
 .. automodule:: itwinai.torch.inference
    :members:
    :undoc-members:
@@ -38,8 +38,8 @@ inference.py
    :member-order: bysource
 
 
-loggers.py
-++++++++++
+loggers
++++++++
 .. automodule:: itwinai.torch.loggers
    :members:
    :undoc-members:
@@ -47,8 +47,35 @@ loggers.py
    :member-order: bysource
 
 
-mlflow.py
-+++++++++
+models.mnist
+++++++++++++
+.. automodule:: itwinai.torch.models.mnist
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+monitoring.monitoring
++++++++++++++++++++++
+.. automodule:: itwinai.torch.monitoring.monitoring
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+monitoring.backend
+++++++++++++++++++
+.. automodule:: itwinai.torch.monitoring.backend
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+mlflow
+++++++
 .. automodule:: itwinai.torch.mlflow
    :members:
    :undoc-members:
@@ -56,8 +83,26 @@ mlflow.py
    :member-order: bysource
 
 
-reproducibility.py
+profiling.profiler
 ++++++++++++++++++
+.. automodule:: itwinai.torch.profiling.profiler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+profiling.py_spy_aggregation
+++++++++++++++++++++++++++++
+.. automodule:: itwinai.torch.profiling.py_spy_aggregation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+reproducibility
++++++++++++++++
 .. automodule:: itwinai.torch.reproducibility
    :members:
    :undoc-members:
@@ -65,17 +110,8 @@ reproducibility.py
    :member-order: bysource
 
 
-type.py
-++++++++
-.. automodule:: itwinai.torch.type
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :member-order: bysource
-
-
-trainer.py
-++++++++++
+trainer
++++++++
 .. automodule:: itwinai.torch.trainer
    :members:
    :undoc-members:
@@ -83,10 +119,18 @@ trainer.py
    :member-order: bysource
 
 
-tuning.py
-++++++++++
+tuning
+++++++
 .. automodule:: itwinai.torch.tuning
    :members:
    :undoc-members:
    :show-inheritance:
-   :member-order: bysource
+
+
+type
+++++
+.. automodule:: itwinai.torch.type
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource   :member-order: bysource

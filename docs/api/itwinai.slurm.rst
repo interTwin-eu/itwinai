@@ -1,28 +1,27 @@
-itwinai.scalability_report
-==========================
+itwinai.slurm
+================
 
-
-data
-+++++++
-.. automodule:: itwinai.scalability_report.data
+configuration
++++++++++++++
+.. automodule:: itwinai.slurm.configuration
    :members:
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
 
 
-plot
-+++++++
-.. automodule:: itwinai.scalability_report.plot
+constants
++++++++++
+.. automodule:: itwinai.slurm.constants
    :members:
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
 
 
-reports
-++++++++++
-.. automodule:: itwinai.scalability_report.reports
+script_builder
+++++++++++++++
+.. automodule:: itwinai.slurm.script_builder
    :members:
    :undoc-members:
    :show-inheritance:
@@ -30,9 +29,10 @@ reports
 
 
 utils
-++++++++
-.. automodule:: itwinai.scalability_report.utils
++++++
+.. automodule:: itwinai.slurm.utils
    :members:
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
+

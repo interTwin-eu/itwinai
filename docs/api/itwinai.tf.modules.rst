@@ -1,8 +1,8 @@
 itwinai.tensorflow
 ==================
 
-distributed.py
-++++++++++++++
+distributed
++++++++++++
 
 .. automodule:: itwinai.tensorflow.distributed
    :members:
@@ -11,8 +11,8 @@ distributed.py
    :member-order: bysource
 
 
-trainer.py
-+++++++++++
+trainer
++++++++
 
 .. automodule:: itwinai.tensorflow.trainer
    :members:
@@ -21,8 +21,8 @@ trainer.py
    :member-order: bysource
 
 
-utils.py
-++++++++
+utils
++++++
 
 .. automodule:: itwinai.tensorflow.utils
    :members:
