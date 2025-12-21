@@ -37,10 +37,10 @@ class SlurmScriptConfiguration(BaseModel):
 
     #: Optional job name for the SLURM job. Defaults to None (auto-generated later).
     job_name: str | None = None
-    #: Billing account to charge the job to. Defaults to "slurm-account".
-    account: str = "slurm-account"
-    #: Partition/queue the job should run on. Defaults to "slurm-partition".
-    partition: str = "slurm-partition"
+    #: Billing account to charge the job to. Required.
+    account: str
+    #: Partition/queue the job should run on. Required.
+    partition: str
     #: Wall-clock time limit for the job (``HH:MM:SS``). Defaults to ``00:30:00``.
     time: str = "00:30:00"
 
