@@ -723,14 +723,30 @@ def exec_pipeline(
     # Process CLI arguments to handle paths
     sys.argv = make_config_paths_absolute(sys.argv)
 
+    # Strip CLI-only overrides (handled via Typer params) before handing argv to Hydra.
+    # Accept both --flag=value and split (--flag value) forms.
+    cleaned_args: list[str] = []
+    skip_next = False
+    for arg in sys.argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in ("--strategy", "--run-name"):
+            skip_next = True
+            continue
+        if arg.startswith("--strategy=") or arg.startswith("--run-name="):
+            continue
+        cleaned_args.append(arg)
+    sys.argv = cleaned_args
+
     # Inject global overrides if provided. This increases the compatibility with the SLURM
     # script builder, which may need to dynamically override strategy and run_name, which
     # must always be accepted by exec-pipeline
     if strategy:
-        # Use '+' to allow creation if the field is missing in the config
-        sys.argv.append(f"+strategy={strategy}")
+        # Use '++' to allow creation if the field is missing in the config
+        sys.argv.append(f"++strategy={strategy}")
     if run_name:
-        sys.argv.append(f"+run_name={run_name}")
+        sys.argv.append(f"++run_name={run_name}")
 
     config = None
     if url(config_name):

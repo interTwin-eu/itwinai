@@ -84,7 +84,7 @@ Steps
           "--config-name={config_name} "
           "--config-path={config_path} "
           "--strategy={distributed_strategy} "
-          "--run_name={run_name}"
+          "--run-name={run_name} "
           "+pipe_key={pipe_key} "
 
         # Any other SLURM configuration options you want to set.
