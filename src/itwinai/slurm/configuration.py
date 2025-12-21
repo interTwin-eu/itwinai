@@ -41,7 +41,7 @@ class SlurmScriptConfiguration(BaseModel):
     account: str = "intertwin"
     #: Partition/queue the job should run on. Defaults to "develbooster".
     partition: str = "develbooster"
-    #: Wall-clock time limit for the job (HH:MM:SS). Defaults to "00:30:00".
+    #: Wall-clock time limit for the job (format "HH\:MM\:SS"). Defaults to "00\:30\:00".
     time: str = "00:30:00"
 
     #: Path to standard output file. Defaults to None (filled later).
@@ -130,7 +130,8 @@ class MLSlurmBuilderConfig(SlurmScriptConfiguration):
     container_path: Path | None = None
     #: Distributed strategy to use for training. Required.
     distributed_strategy: Literal["ddp", "horovod", "deepspeed"]
-    #: Execution mode: single job, all strategies, or scaling test. Defaults to "single".
+    #: Execution mode can be a single job, all strategies, or scaling test (with all
+    #: strategies). Defaults to "single".
     mode: Literal["single", "runall", "scaling-test"] = "single"
     #: Optional custom training command template. Can reference any field in this config.
     #: Defaults to ``{itwinai_launcher} exec-pipeline --config-name={config_name}
@@ -138,7 +139,7 @@ class MLSlurmBuilderConfig(SlurmScriptConfiguration):
     #: +pipe_key={pipe_key}``.
     training_cmd: str | None = Field(
         default=DEFAULT_TRAINING_CMD,
-        description=f"Template for the training command. Defaults to: {DEFAULT_TRAINING_CMD}",
+        description=f"Template for the training command. Defaults to '{DEFAULT_TRAINING_CMD}'",
     )
     #: Python virtual environment to activate. Defaults to None.
     python_venv: str | None = None
