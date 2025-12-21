@@ -497,9 +497,11 @@ def generate_default_slurm_script() -> None:
         run_name=args.run_name,
     )
 
-    mode = args.mode
-    node_list = args.scalability_nodes
-    process_builder(slurm_script_builder=slurm_script_builder, mode=mode, node_list=node_list)
+    process_builder(
+        slurm_script_builder=slurm_script_builder,
+        mode=args.mode,
+        node_list=args.scalability_nodes,
+    )
 
 
 def process_builder(
