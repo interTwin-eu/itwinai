@@ -37,11 +37,11 @@ class SlurmScriptConfiguration(BaseModel):
 
     #: Optional job name for the SLURM job. Defaults to None (auto-generated later).
     job_name: str | None = None
-    #: Billing account to charge the job to. Defaults to "intertwin".
-    account: str = "intertwin"
-    #: Partition/queue the job should run on. Defaults to "develbooster".
-    partition: str = "develbooster"
-    #: Wall-clock time limit for the job (format "HH\:MM\:SS"). Defaults to "00\:30\:00".
+    #: Billing account to charge the job to. Defaults to "slurm-account".
+    account: str = "slurm-account"
+    #: Partition/queue the job should run on. Defaults to "slurm-partition".
+    partition: str = "slurm-partition"
+    #: Wall-clock time limit for the job (``HH:MM:SS``). Defaults to ``00:30:00``.
     time: str = "00:30:00"
 
     #: Path to standard output file. Defaults to None (filled later).

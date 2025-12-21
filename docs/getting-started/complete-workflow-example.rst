@@ -79,13 +79,13 @@ Steps
         # $ itwinai exec-pipeline -c <this config>.yaml [ARGS]
         # The template is filled in using the fields of this slurm_config.
         # Example:
-        training_cmd: |
-          "{itwinai_launcher} exec-pipeline "
-          "--config-name={config_name} "
-          "--config-path={config_path} "
-          "--strategy={distributed_strategy} "
-          "--run-name={run_name} "
-          "+pipe_key={pipe_key} "
+        training_cmd: >
+          {itwinai_launcher} exec-pipeline
+          --config-name={config_name}
+          --config-path={config_path}
+          --strategy={distributed_strategy}
+          --run-name={run_name}
+          +pipe_key={pipe_key}
 
         # Any other SLURM configuration options you want to set.
         # Check out the SLURM builder for more information.

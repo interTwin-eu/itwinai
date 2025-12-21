@@ -1,5 +1,5 @@
 # If you use this with in the runall or scaling mode, keep in mind that the strategies
-# will change, as well as the number of nodes. 
+# will change, as well as the number of nodes.
 #
 # Default arguments can be seen in src/itwinai/slurm/utils.py
 #
@@ -28,10 +28,9 @@ job_name: tutorial-${distributed_strategy}-job
 scalability_nodes: "1, 2, 4"
 
 python_venv: ../../../.venv
-
 # If you want to manually override the training command, comment in the following:
-# training_cmd: | 
-#   $(which itwinai) exec-pipeline \
-#   --config_path ${config_file} \
-#   +pipe_key ${pipe_key} \
-#   strategy=${distributed_strategy} \
+# training_cmd: >
+#   $(which itwinai) exec-pipeline
+#   --config_path ${config_file}
+#   +pipe_key ${pipe_key}
+#   strategy=${distributed_strategy}

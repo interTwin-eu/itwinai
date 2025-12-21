@@ -48,13 +48,13 @@ slurm_config:
   # This provides a template for the training command launched
   # using itwinai exec-pipeline -c <this config>.yaml
   # The template is filled in using the fields of this slurm_config.
-  training_cmd: |
-    "{itwinai_launcher} exec-pipeline "
-    "--config-name={config_name} "
-    "--config-path={config_path} "
-    "--strategy={distributed_strategy} "
-    "--run-name={run_name} "
-    "+pipe_key={pipe_key} "
+  training_cmd: >
+    {itwinai_launcher} exec-pipeline
+    --config-name={config_name}
+    --config-path={config_path}
+    --strategy={distributed_strategy}
+    --run-name={run_name}
+    +pipe_key={pipe_key}
 
 # Workflows configuration
 training_pipeline:
@@ -69,6 +69,7 @@ training_pipeline:
       enable_torch_profiling: False
       store_torch_profiling_traces: False
       measure_epoch_time: False
+      run_name: ${run_name}
       time_ray: True # track time for ray report and fit
       # from_checkpoint: ${itwinai.cwd:}/checkpoints_ddp/best_model/
       config:
