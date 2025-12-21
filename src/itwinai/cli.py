@@ -36,12 +36,7 @@ from omegaconf import DictConfig
 from typing_extensions import Annotated
 from validators import url
 
-from itwinai.slurm.slurm_script_builder import MLSlurmBuilder, process_builder
-from itwinai.slurm.slurm_script_configuration import SlurmScriptConfiguration
-from itwinai.slurm.utils import get_slurm_job_parser
-from itwinai.utils import retrieve_remote_omegaconf_file
-
-from .constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
+from itwinai.constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -430,203 +425,46 @@ def check_distributed_cluster(
             typer.echo("Unrecognized launcher!")
 
 
-@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+@app.command()
 def generate_slurm(
-    job_name: Annotated[
-        str | None, typer.Option("--job-name", help="The name of the SLURM job.")
-    ] = None,
-    account: Annotated[
-        str, typer.Option("--account", help="The billing account for the SLURM job.")
-    ] = "intertwin",
-    time: Annotated[
-        str, typer.Option("--time", help="The time limit of the SLURM job.")
-    ] = "00:30:00",
-    partition: Annotated[
-        str,
-        typer.Option(
-            "--partition",
-            help="Which partition of the cluster the SLURM job is going to run on.",
-        ),
-    ] = "develbooster",
-    std_out: Annotated[
-        str | None, typer.Option("--std-out", help="The standard out file.")
-    ] = None,
-    err_out: Annotated[
-        str | None, typer.Option("--err-out", help="The error out file.")
-    ] = None,
-    num_nodes: Annotated[
-        int,
-        typer.Option(
-            "--num-nodes",
-            help="The number of nodes that the SLURM job is going to run on.",
-        ),
-    ] = 1,
-    gpus_per_node: Annotated[
-        int,
-        typer.Option("--gpus-per-node", help="The requested number of GPUs per node."),
-    ] = 4,
-    cpus_per_task: Annotated[
-        int,
-        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per SLURM task."),
-    ] = 4,
-    save_script: Annotated[
-        bool,
-        typer.Option(
-            "--save-script",
-            help="Whether to save the script or not.",
-        ),
-    ] = False,
-    submit_job: Annotated[
-        bool,
-        typer.Option(
-            "--submit-script",
-            help="Whether to submit the script or not.",
-        ),
-    ] = False,
-    save_dir: Annotated[
-        str | None,
-        typer.Option(
-            "--save-dir",
-            help="In which directory to save the script, if saving it.",
-        ),
-    ] = None,
-    exec_file: Annotated[
-        str | None,
-        typer.Option(
-            "--exec-file",
-            help=(
-                "The location of the file containing the execution command. Also accepts a "
-                "remote url."
-            ),
-        ),
-    ] = None,
-    pre_exec_file: Annotated[
-        str | None,
-        typer.Option(
-            "--pre-exec-file",
-            help=(
-                "The location of the file containing the pre-execution command. Also accepts"
-                " a remote url."
-            ),
-        ),
-    ] = None,
-    use_ray: Annotated[
-        bool,
-        typer.Option(
-            "--use-ray",
-            help="Whether to enable Ray or not.",
-        ),
-    ] = False,
-    memory: Annotated[
-        str,
-        typer.Option(
-            "--memory",
-            help="How much memory to allocate per node.",
-        ),
-    ] = "16G",
-    exclusive: Annotated[
-        bool,
-        typer.Option(
-            "--exclusive",
-            help="Whether to make the SLURM job exclusive or not.",
-        ),
-    ] = False,
-    run_name: Annotated[
-        str,
-        typer.Option(
-            "--run-name",
-            help="Which run name to use.",
-        ),
-    ] = "16G",
-    exp_name: Annotated[
-        str,
-        typer.Option(
-            "--exp-name",
-            help="Which experiment name to use.",
-        ),
-    ] = "16G",
-    container_path: Annotated[
-        str | None,
-        typer.Option(
-            "--container-path",
-            help="Path to container that should be exported.",
-        ),
-    ] = None,
-    config_path: Annotated[
-        str,
-        typer.Option(
-            "--config-path",
-            help="The path to the directory containing the config file to use for training.",
-        ),
-    ] = ".",
-    config_name: Annotated[
-        str,
-        typer.Option("--config-name", help="The name of the config file to use for training."),
-    ] = "config",
-    pipe_key: Annotated[
-        str,
-        typer.Option("--pipe-key", help="Which pipe key to use for running the pipeline."),
-    ] = "training_pipeline",
-    mode: Annotated[
-        str,
-        typer.Option(
-            "--mode",
-            help="Which mode to run, e.g. scaling test, all strategies, or a single run.",
-            case_sensitive=False,
-        ),
-    ] = "single",
-    dist_strat: Annotated[
-        str,
-        typer.Option(
-            "--dist-strat",
-            help="Which distributed strategy to use.",
-            case_sensitive=False,
-        ),
-    ] = "ddp",
-    training_cmd: Annotated[
-        str | None,
-        typer.Option(
-            "--training-cmd", help="The training command to use for the python script."
-        ),
-    ] = None,
-    python_venv: Annotated[
-        str,
-        typer.Option(
-            "--python-venv", help="Which python venv to use for running the command."
-        ),
-    ] = ".venv",
-    scalability_nodes: Annotated[
-        str,
-        typer.Option(
-            "--scalability-nodes",
-            help="A comma-separated list of node numbers to use for the scalability test.",
-        ),
-    ] = "1,2,4,8",
     config: Annotated[
-        str | None,
-        typer.Option("--config", help="The path to the SLURM configuration file."),
-    ] = None,
-    py_spy: Annotated[
-        bool, typer.Option("--py-spy", help="Whether to activate profiling with py-spy or not")
-    ] = False,
-    profiling_sampling_rate: Annotated[
-        int,
+        str,
         typer.Option(
-            "--profiling-sampling-rate",
-            help="The rate at which to profile with the py-spy profiler.",
+            "-c",
+            "--config",
+            help="Path or URL to a YAML SLURM configuration file.",
         ),
-    ] = 10,
+    ],
+    submit_job: Annotated[
+        bool | None,
+        typer.Option(
+            "-j",
+            "--submit-job/--no-submit-job",
+            help="Whether to submit the SLURM job after generating the script.",
+        ),
+    ] = None,
+    save_script: Annotated[
+        bool | None,
+        typer.Option(
+            "-s",
+            "--save-script/--no-save-script",
+            help="Whether to save the generated SLURM script to disk.",
+        ),
+    ] = None,
 ):
-    """Generates a default SLURM script using arguments and optionally a configuration
-    file.
-    """
-    from itwinai.slurm.slurm_script_builder import generate_default_slurm_script
+    """Generate a SLURM script from a configuration file."""
+    from itwinai.slurm.script_builder import generate_default_slurm_script
 
-    del sys.argv[0]
-    generate_default_slurm_script()
+    validated_config, _ = _load_slurm_builder_config(
+        config_path=config,
+        expect_nested=False,
+        submit_job=submit_job,
+        save_script=save_script,
+    )
+    generate_default_slurm_script(validated_config)
 
 
-def install_plugins(config):
+def _install_plugins(config):
     if "plugins" not in config or config.plugins is None:
         return
 
@@ -648,7 +486,70 @@ def install_plugins(config):
             raise typer.Exit(1)
 
 
-@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def _load_slurm_builder_config(
+    config_path: str,
+    submit_job: bool | None = None,
+    save_script: bool | None = None,
+    expect_nested: bool = True,
+):
+    """Load slurm configuration from a YAML/URL source and validate with Pydantic.
+
+    If ``expect_nested`` is True, the config must contain a ``slurm_config`` field and that
+    section is validated. Otherwise, the root config is treated as the SLURM config.
+
+    Args:
+        config_path (str): Path or URL to the SLURM configuration file.
+        submit_job (bool | None, optional): Override for submitting the job; when None, use value
+            from the config.
+        save_script (bool | None, optional): Override for saving the generated SLURM script; when
+            None, use value from the config.
+        expect_nested (bool, optional): Whether to load the SLURM config from a ``slurm_config``
+            section inside the root config.
+
+    Returns:
+        tuple[MLSlurmBuilderConfig, DictConfig | ListConfig | None]: Validated SLURM configuration
+            and the root configuration if a nested structure was expected.
+    """
+    from omegaconf import DictConfig, ListConfig, OmegaConf
+    from pydantic import ValidationError
+    from itwinai.utils import retrieve_remote_omegaconf_file
+    from itwinai.slurm.configuration import MLSlurmBuilderConfig
+
+    if not OmegaConf.has_resolver("itwinai.cwd"):
+        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
+
+    if url(config_path):
+        cli_logger.info("Retrieving config from URL.")
+        root_config: DictConfig | ListConfig = retrieve_remote_omegaconf_file(url=config_path)
+    else:
+        root_config = OmegaConf.load(config_path)
+
+    if expect_nested:
+        if "slurm_config" not in root_config:
+            cli_logger.error("'slurm_config' needs to be present in config, but was not!")
+            raise typer.Exit(1)
+        slurm_config = root_config.slurm_config
+    else:
+        slurm_config = root_config
+    slurm_config_dict = cast(Dict[str, Any], OmegaConf.to_object(slurm_config))
+    if not isinstance(slurm_config_dict, dict):
+        cli_logger.error("The SLURM configuration must be of type dict, but was not.")
+        raise typer.Exit(1)
+
+    if submit_job is not None:
+        slurm_config_dict["submit_job"] = submit_job
+    if save_script is not None:
+        slurm_config_dict["save_script"] = save_script
+
+    try:
+        validated_config = MLSlurmBuilderConfig.model_validate(slurm_config_dict)
+    except ValidationError as exc:
+        cli_logger.error(f"Invalid SLURM configuration: {exc}")
+        raise typer.Exit(1)
+
+    return validated_config, (root_config if expect_nested else None)
+
+@app.command()
 def run(
     config: Annotated[
         str,
@@ -657,122 +558,33 @@ def run(
         ),
     ],
     submit_job: Annotated[
-        bool,
+        bool | None,
         typer.Option(
-            "-j", "--submit-job",
+            "-j",
+            "--submit-job/--no-submit-job",
             help="Whether to submit the SLURM job after generating the script.",
         ),
-    ] = False,
+    ] = None,
     save_script: Annotated[
-        bool,
+        bool | None,
         typer.Option(
-            "-s", "--save-script",
+            "-s",
+            "--save-script/--no-save-script",
             help="Whether to save the generated SLURM script to disk.",
         ),
-    ] = False,
+    ] = None,
 ):
     """Launch ML jobs with dependency installation and SLURM scheduling."""
-    from argparse import ArgumentParser
+    from itwinai.slurm.script_builder import generate_default_slurm_script
 
-    from omegaconf import DictConfig, ListConfig, OmegaConf
-
-    # We delete this as it's needed when combining the argparser with typer/omegaconf
-    del sys.argv[0]
-
-    if not OmegaConf.has_resolver("itwinai.cwd"):
-        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
-
-    initial_parser = ArgumentParser()
-    initial_parser.add_argument(
-        "-c",
-        "--config",
-        help="Path or URL to configuration file in yaml format.",
+    validated_slurm_config, root_config = _load_slurm_builder_config(
+        config_path=config, 
+        submit_job=submit_job,
+        save_script=save_script,
+        expect_nested=True,
     )
-    initial_parser.add_argument(
-        "-j",
-        "--submit-job",
-        action="store_true",
-        help="Whether to submit the SLURM job after generating the script.",
-    )
-    initial_parser.add_argument(
-        "-s",
-        "--save-script",
-        action="store_true",
-        help="Whether to save the generated SLURM script to disk.",
-    )
-    args = initial_parser.parse_args()
-
-    root_config: DictConfig | ListConfig
-    if url(args.config):
-        cli_logger.info("Retrieving config from URL.")
-        root_config = retrieve_remote_omegaconf_file(url=args.config)
-    else:
-        root_config = OmegaConf.load(args.config)
-    if "slurm_config" not in root_config:
-        cli_logger.error("'slurm_config' needs to be present in config, but was not!")
-        raise typer.Exit(1)
-
-    install_plugins(config=root_config)
-
-    slurm_config = root_config.slurm_config
-
-    # cast to make the linter happy
-    slurm_config_dict = cast(Dict[str, Any], OmegaConf.to_object(slurm_config))
-    if not isinstance(slurm_config_dict, dict):
-        cli_logger.error("The SLURM configuration must be of type dict, but was not.")
-        raise typer.Exit(1)
-
-    # Override SLURM config with CLI flags (CLI takes precedence)
-    slurm_config_dict["submit_job"] = args.submit_job
-    slurm_config_dict["save_script"] = args.save_script
-
-    # The slurm parser requires a metadata field so we add an empty one
-    slurm_config_dict.setdefault("metadata", {})
-
-    slurm_parser = get_slurm_job_parser()
-    slurm_args = slurm_parser.parse_object(slurm_config_dict)
-    num_tasks_per_node = 1
-
-    slurm_config_obj = SlurmScriptConfiguration(
-        job_name=slurm_args.job_name,
-        account=slurm_args.account,
-        time=slurm_args.time,
-        partition=slurm_args.partition,
-        std_out=slurm_args.std_out,
-        err_out=slurm_args.err_out,
-        num_nodes=slurm_args.num_nodes,
-        num_tasks_per_node=num_tasks_per_node,
-        gpus_per_node=slurm_args.gpus_per_node,
-        cpus_per_task=slurm_args.cpus_per_task,
-        memory=slurm_args.memory,
-        exclusive=slurm_args.exclusive,
-    )
-
-    slurm_script_builder = MLSlurmBuilder(
-        slurm_script_configuration=slurm_config_obj,
-        should_submit=slurm_args.submit_job,
-        should_save=slurm_args.save_script,
-        use_ray=slurm_args.use_ray,
-        container_path=slurm_args.container_path,
-        distributed_strategy=slurm_args.dist_strat,
-        exec_file=slurm_args.exec_file,
-        pre_exec_file=slurm_args.pre_exec_file,
-        save_dir=slurm_args.save_dir,
-        python_venv=slurm_args.python_venv,
-        training_command=slurm_args.training_cmd,
-        config_path=slurm_args.config_path,
-        config_name=slurm_args.config_name,
-        pipe_key=slurm_args.pipe_key,
-        py_spy_profiling=slurm_args.py_spy,
-        profiling_sampling_rate=slurm_args.profiling_sampling_rate,
-        experiment_name=slurm_args.exp_name,
-        run_name=slurm_args.run_name,
-    )
-    process_builder(
-        slurm_script_builder=slurm_script_builder,
-        mode=slurm_args.mode,
-        node_list=slurm_args.scalability_nodes,
-    )
+    _install_plugins(config=root_config)
+    generate_default_slurm_script(validated_slurm_config)
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -816,6 +628,20 @@ def exec_pipeline(
             help="Install or Uninstall shell completion",
         ),
     ] = "",
+    strategy: Annotated[
+        str | None,
+        typer.Option(
+            "--strategy",
+            help="Override the global 'strategy' field in the config (creates it if missing).",
+        ),
+    ] = None,
+    run_name: Annotated[
+        str | None,
+        typer.Option(
+            "--run-name",
+            help="Override the global 'run_name' field in the config (creates it if missing).",
+        ),
+    ] = None,
     config_path: Annotated[
         str,
         typer.Option(
@@ -895,6 +721,15 @@ def exec_pipeline(
 
     # Process CLI arguments to handle paths
     sys.argv = make_config_paths_absolute(sys.argv)
+
+    # Inject global overrides if provided. This increases the compatibility with the SLURM
+    # script builder, which may need to dynamically override strategy and run_name, which
+    # must always be accepted by exec-pipeline 
+    if strategy:
+        # Use '+' to allow creation if the field is missing in the config
+        sys.argv.append(f"+strategy={strategy}")
+    if run_name:
+        sys.argv.append(f"+run_name={run_name}")
 
     config = None
     if url(config_name):

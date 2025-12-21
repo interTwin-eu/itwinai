@@ -1,5 +1,8 @@
+# Default fields (always needed)
+strategy: ddp
+run_name: "mnist"
+
 # General config
-run_id: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
 batch_size: 128
@@ -11,7 +14,6 @@ fp16_allreduce: False
 use_adasum: False
 gradient_predivide_factor: 1.0
 epochs: 5
-strategy: ddp
 test_data_path: mnist-sample-data
 inference_model_mlflow_uri: mnist-pre-trained.pth
 predictions_dir: mnist-predictions
@@ -21,7 +23,7 @@ checkpoints_location: checkpoints
 checkpoint_every: 1
 
 plugins:
-- git+https://github.com/matbun/itwinai-mnist-plugin.git
+  - git+https://github.com/matbun/itwinai-mnist-plugin.git
 
 slurm_config:
   job_name: mnist-job
@@ -32,15 +34,27 @@ slurm_config:
   num_nodes: 2
   submit_job: true
   save_script: true
-  pipe_key: training_pipeline
-  experiment_name: "MNIST classifier"
-  run_name: "main-run"
-  dist_strat: ${strategy}
-  
-  config_name: run-example  # Assuming this is the name of this file
-  config_path: .  # Assuming that run-example.yaml is in the current directory
-
   pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/src/itwinai/slurm/system-base-scripts/vega_pre_exec.sh
+
+  # Fields referring to this config file
+  pipe_key: training_pipeline
+  config_name: run-example # Assuming this is the name of this file
+  config_path: . # Assuming that run-example.yaml is in the current directory
+
+  # Propagate global config to this slurm_config
+  distributed_strategy: ${strategy}
+  run_name: ${run_name}
+
+  # This provides a template for the training command launched
+  # using itwinai exec-pipeline -c <this config>.yaml
+  # The template is filled in using the fields of this slurm_config.
+  training_cmd: |
+    "{itwinai_launcher} exec-pipeline "
+    "--config-name={config_name} "
+    "--config-path={config_path} "
+    "--strategy={distributed_strategy} "
+    "--run_name={run_name}"
+    "+pipe_key={pipe_key} "
 
 # Workflows configuration
 training_pipeline:
@@ -56,7 +70,6 @@ training_pipeline:
       store_torch_profiling_traces: False
       measure_epoch_time: False
       time_ray: True # track time for ray report and fit
-      run_id: ${run_id}
       # from_checkpoint: ${itwinai.cwd:}/checkpoints_ddp/best_model/
       config:
         batch_size: ${batch_size}
@@ -125,4 +138,3 @@ training_pipeline:
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
       checkpoints_location: ${checkpoints_location}
-

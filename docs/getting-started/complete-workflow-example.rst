@@ -50,6 +50,10 @@ Steps
 
    .. code-block:: yaml
 
+      # Default fields (always needed)
+      strategy: ddp
+      run_name: "mnist"
+      
       plugins:
         - <my first required plugin>
         - <my second required plugin>
@@ -61,6 +65,27 @@ Steps
         submit_job: true   # Set this if you actually want to submit the job
         save_script: true  # Set this if you want to store the generated SLURM script(s)
         pre_exec_file: <path or URL to pre-execution file for current system>
+        
+        # Fields referring to this config file
+        pipe_key: training_pipeline
+        config_name: <name of this config file>
+        config_path: <path to the directory containing this config file>
+
+        # Propagate global config to this slurm_config
+        distributed_strategy: ${strategy}
+        run_name: ${run_name}
+
+        # This provides a template for the training command launched using:
+        # $ itwinai exec-pipeline -c <this config>.yaml [ARGS]
+        # The template is filled in using the fields of this slurm_config.
+        # Example:
+        training_cmd: |
+          "{itwinai_launcher} exec-pipeline "
+          "--config-name={config_name} "
+          "--config-path={config_path} "
+          "--strategy={distributed_strategy} "
+          "--run_name={run_name}"
+          "+pipe_key={pipe_key} "
 
         # Any other SLURM configuration options you want to set.
         # Check out the SLURM builder for more information.
@@ -86,6 +111,11 @@ Steps
    .. code-block:: bash
 
       itwinai run -jc run_config.yaml
+
+   The ``slurm_config`` section follows :class:`itwinai.slurm.configuration.MLSlurmBuilderConfig`
+   (extending :class:`itwinai.slurm.configuration.SlurmScriptConfiguration`), which documents
+   each field and its default. Use the YAML to set values; ``-j`` and ``-s`` are the only CLI
+   overrides applied on top of the config for submission and saving.
 
 MNIST Example
 -------------
