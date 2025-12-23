@@ -167,12 +167,12 @@ such as TensorBoard [@tensorboard], MLflow [@mlflow], Weights & Biases [@wandb],
 and yProvML [@yprovml] logger, and provides a unified interface across all of
 them through a thin abstraction layer.
 
-**Offloading to HPC systems and cloud**: To benefit from both cloud and HPC, interLink
+**Offloading to HPC systems and cloud**: to benefit from both cloud and HPC, interLink
 [@interlink] is used, which is a lightweight component to enable seamless offloading
 of compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
-**Continuous integration and deployment** `itwinai` includes extensive tests
+**Continuous integration and deployment**: `itwinai` includes extensive tests
 (library and use cases). A [Dagger](https://dagger.io/) pipeline builds containers on
 release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16
 GB)[^choosing_gh_runners], offloads distributed tests to HPC systems via interLink, and
