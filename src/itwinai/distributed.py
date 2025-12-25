@@ -252,12 +252,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
         _has_all("SLURM_PROCID", "SLURM_LOCALID")
         and _has_any("SLURM_STEP_NUM_TASKS", "SLURM_NTASKS")
         and _has_any(
-            "SLURM_NTASKS_PER_NODE",
-            "SLURM_TASKS_PER_NODE",
-            "SLURM_STEP_TASKS_PER_NODE",
-            "CUDA_VISIBLE_DEVICES",
-            "ROCR_VISIBLE_DEVICES",
-            "HIP_VISIBLE_DEVICES",
+            "SLURM_NTASKS_PER_NODE", "SLURM_TASKS_PER_NODE", "SLURM_STEP_TASKS_PER_NODE"
         )
     ):
         py_logger.debug("Detected SLURM distributed environment")
@@ -272,17 +267,11 @@ def detect_distributed_environment() -> ClusterEnvironment:
             os.getenv("SLURM_TASKS_PER_NODE"),
             os.getenv("SLURM_STEP_TASKS_PER_NODE"),
         )
-        if local_world_size is None:
-            # Try to retrieve it by counting the number of GPUs
-            local_world_size = _get_n_visible_devices()
-
         if local_world_size is None or local_world_size <= 0:
             # If is is still None, crash
             raise ValueError(
                 "Could not determine local_world_size from SLURM tasks-per-node env vars "
-                "(SLURM_NTASKS_PER_NODE / SLURM_TASKS_PER_NODE / SLURM_STEP_TASKS_PER_NODE) "
-                "or from visible devices env vars (CUDA_VISIBLE_DEVICES / "
-                "ROCR_VISIBLE_DEVICES / HIP_VISIBLE_DEVICES)."
+                "(SLURM_NTASKS_PER_NODE / SLURM_TASKS_PER_NODE / SLURM_STEP_TASKS_PER_NODE)."
             )
 
         return ClusterEnvironment(
