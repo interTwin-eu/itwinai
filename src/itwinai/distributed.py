@@ -192,7 +192,7 @@ def _get_n_visible_devices() -> int | None:
 
         s = visible.strip()
         if s in ("-1", "none", "None", ""):
-            return 0
+            return None
 
         # Typical format: "0,1,2" (can include whitespace)
         tokens = [t.strip() for t in s.split(",") if t.strip() != ""]
