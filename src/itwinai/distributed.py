@@ -12,6 +12,7 @@ import builtins as __builtin__
 import functools
 import logging
 import os
+import re
 import subprocess
 import sys
 from typing import TYPE_CHECKING, Any, Callable
@@ -44,6 +45,11 @@ class ClusterEnvironment(BaseModel):
 
 
 def ray_cluster_is_running() -> bool:
+    """Check if a Ray cluster is running.
+
+    Returns:
+        bool: True if a running Ray cluster is detected. False otherwise.
+    """
     try:
         # Run the `ray status` command. It should be less overhead than ray.init()
         result = subprocess.run(
@@ -81,14 +87,18 @@ def _get_env(
     default: Any | None = None,
     cast: Callable[[str], Any] = lambda x: x,
     required: bool = False,
-) -> Any:
+) -> Any | None:
     """Fetches and casts an environment variable.
 
     Args:
-        name: the ENV var name.
-        default: returned if var is unset (and required is False).
-        cast: function to transform the raw str into the desired type.
-        required: if True and var is missing, raises KeyError.
+        name (str): the ENV var name.
+        default (Any): returned if var is unset (and required is False). Defaults to None.
+        cast (Callable[[str], Any]): function to transform the raw str into the desired type.
+            Defaults to the identity function.
+        required (bool): if True and var is missing, raises KeyError. Defaults to False.
+
+    Raises:
+        KeyError: when a required env variable is required but not found.
     """
     raw = os.getenv(name)
     if raw is None:
@@ -103,15 +113,80 @@ def _get_env(
 
 
 def _get_int(name: str, default: int | None = None, required: bool = False) -> int:
-    return _get_env(name, default=default, cast=int, required=required)
+    val = _get_env(name, default=default, cast=int, required=required)
+    if val is None:
+        raise ValueError(
+            f"Could not cast variable {name!r} to int because it is None. "
+            f"Default value was set to {default!r}"
+        )
+    return int(val)
+
+
+def _has_all(*names: str) -> bool:
+    """True iff all env vars are set (not None)."""
+    return all(os.getenv(n) is not None for n in names)
+
+
+def _is_torchrun_env() -> bool:
+    """Detect torchrun / TorchElastic cluster."""
+    # https://pytorch.org/docs/stable/elastic/run.html#environment-variables
+    return _has_all("RANK", "WORLD_SIZE", "LOCAL_RANK", "LOCAL_WORLD_SIZE") and (
+        os.getenv("TORCHELASTIC_RUN_ID") is not None or _has_all("MASTER_ADDR", "MASTER_PORT")
+    )
+
+
+def _parse_slurm_tasks_per_node(*vals: str | None) -> int | None:
+    """Parse SLURM tasks-per-node env vars.
+
+    Accepts one or more candidate strings (e.g. SLURM_NTASKS_PER_NODE,
+    SLURM_TASKS_PER_NODE). Returns the first successfully parsed value.
+
+    Handles formats like:
+      "2"
+      "2(x3)"
+      "2(x2),1"
+      "4,4,4"
+
+    Returns: max tasks on any node, or None if nothing is parseable.
+    """
+    for val in vals:
+        if not val:
+            continue
+
+        parts = [p.strip() for p in val.strip().split(",")]
+        counts: list[int] = []
+
+        for p in parts:
+            m = re.match(r"^(\d+)(?:\(x\d+\))?$", p)
+            if m:
+                counts.append(int(m.group(1)))
+
+        if counts:
+            return max(counts)
+
+    return None
 
 
 def detect_distributed_environment() -> ClusterEnvironment:
-    """Detects a distributed environment by probing known env vars."""
-    # 1) TorchElastic
-    if os.getenv("TORCHELASTIC_RUN_ID") is not None:
-        py_logger.debug("Using TorchElastic distributed cluster")
-        # https://pytorch.org/docs/stable/elastic/run.html#environment-variables
+    """Detect a distributed environment by probing known env vars.
+
+    Robust across:
+    - laptop (no SLURM/OMPI/torchrun env): returns default (rank=0, world=1)
+    - interactive SLURM allocation without a job step: returns default
+    - SLURM batch / srun step: detects via SLURM_PROCID
+    - OpenMPI: detects via OMPI rank/size
+    - torchrun / TorchElastic: detects via rank/size + extra torch markers
+
+    Returns:
+        ClusterEnvironment: The detected cluster environment.
+    """
+
+    # 1) torchrun / TorchElastic
+    if _is_torchrun_env():
+        py_logger.debug(
+            "Detected torchrun/TorchElastic distributed environment (elastic_run_id=%s)",
+            os.getenv("TORCHELASTIC_RUN_ID"),
+        )
         return ClusterEnvironment(
             global_rank=_get_int("RANK", required=True),
             local_rank=_get_int("LOCAL_RANK", required=True),
@@ -119,31 +194,49 @@ def detect_distributed_environment() -> ClusterEnvironment:
             global_world_size=_get_int("WORLD_SIZE", required=True),
         )
 
-    # 2) Open MPI (guard against stale SLURM_* that might be set)
-    ompi_size = _get_int("OMPI_COMM_WORLD_SIZE", default=-1)
-    slurm_tasks = _get_int("SLURM_NTASKS", default=0)
-    if ompi_size >= slurm_tasks:
-        py_logger.debug("Using Open MPI distributed cluster")
-        # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
+    # 2) Open MPI
+    if _has_all(
+        "OMPI_COMM_WORLD_RANK",
+        "OMPI_COMM_WORLD_SIZE",
+        "OMPI_COMM_WORLD_LOCAL_SIZE",
+        "OMPI_COMM_WORLD_LOCAL_RANK",
+    ):
+        py_logger.debug("Detected OpenMPI distributed cluster")
         return ClusterEnvironment(
             global_rank=_get_int("OMPI_COMM_WORLD_RANK", required=True),
             local_rank=_get_int("OMPI_COMM_WORLD_LOCAL_RANK", required=True),
             local_world_size=_get_int("OMPI_COMM_WORLD_LOCAL_SIZE", required=True),
-            global_world_size=ompi_size,
+            global_world_size=_get_int("OMPI_COMM_WORLD_SIZE", required=True),
         )
 
-    # 3) SLURM (fallback)
-    if os.getenv("SLURM_JOB_ID") is not None:
-        py_logger.debug("Using SLURM distributed environment")
-        # https://hpcc.umd.edu/hpcc/help/slurmenv.html
+    # 3) SLURM
+    if _has_all("SLURM_PROCID", "SLURM_LOCALID"):
+        py_logger.debug("Detected SLURM distributed environment")
+
+        # Prefer step-level task count if available, else fall back to job-level
+        global_world_size = _get_env("SLURM_STEP_NUM_TASKS", default=None)
+        if global_world_size is None:
+            global_world_size = _get_int("SLURM_NTASKS", required=True)
+
+        local_world_size = _parse_slurm_tasks_per_node(
+            os.getenv("SLURM_NTASKS_PER_NODE"),
+            os.getenv("SLURM_TASKS_PER_NODE"),
+            os.getenv("SLURM_STEP_TASKS_PER_NODE"),
+        )
+        if local_world_size is None:
+            raise ValueError(
+                "Could not detect SLURM_NTASKS_PER_NODE nor SLURM_TASKS_PER_NODE "
+                "env variables in SLURM. Cannot determine local world size!"
+            )
+
         return ClusterEnvironment(
             global_rank=_get_int("SLURM_PROCID", required=True),
             local_rank=_get_int("SLURM_LOCALID", required=True),
-            local_world_size=_get_int("SLURM_NTASKS_PER_NODE", default=1),
-            global_world_size=_get_int("SLURM_NTASKS", required=True),
+            local_world_size=int(local_world_size),
+            global_world_size=int(global_world_size),
         )
 
-    # 4) default: no distributed env
+    # 4) Default: no distributed env (e.g., laptop)
     py_logger.debug("No distributed environment was detected")
     return ClusterEnvironment()
 
