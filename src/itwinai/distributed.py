@@ -127,6 +127,11 @@ def _has_all(*names: str) -> bool:
     return all(os.getenv(n) is not None for n in names)
 
 
+def _has_any(*names: str) -> bool:
+    """True iff at least one env var is set (not None)."""
+    return any(os.getenv(n) is not None for n in names)
+
+
 def _is_torchrun_env() -> bool:
     """Detect torchrun / TorchElastic cluster."""
     # https://pytorch.org/docs/stable/elastic/run.html#environment-variables
@@ -163,6 +168,39 @@ def _parse_slurm_tasks_per_node(*vals: str | None) -> int | None:
 
         if counts:
             return max(counts)
+
+    return None
+
+
+def _get_n_visible_devices() -> int | None:
+    """Return the number of visible GPUs from common env vars.
+
+    Checks NVIDIA and AMD/ROCm conventions:
+    - CUDA_VISIBLE_DEVICES (NVIDIA; also sometimes set for CUDA apps)
+    - ROCR_VISIBLE_DEVICES (ROCm/HIP runtime)
+    - HIP_VISIBLE_DEVICES (ROCm/HIP; sometimes preferred by frameworks)
+
+    Notes:
+    - Values can be comma-separated IDs ("0,1,2") or UUIDs.
+    - Some runtimes use "-1" to mean "no devices"; treat that as 0.
+    - If the variable is unset/empty, returns None.
+    """
+    for var in ("CUDA_VISIBLE_DEVICES", "ROCR_VISIBLE_DEVICES", "HIP_VISIBLE_DEVICES"):
+        visible = os.getenv(var)
+        if not visible:
+            continue
+
+        s = visible.strip()
+        if s in ("-1", "none", "None", ""):
+            return 0
+
+        # Typical format: "0,1,2" (can include whitespace)
+        tokens = [t.strip() for t in s.split(",") if t.strip() != ""]
+        if tokens:
+            return len(tokens)
+
+        # Some setups may set a single value without commas; count as 1
+        return 1
 
     return None
 
@@ -210,11 +248,22 @@ def detect_distributed_environment() -> ClusterEnvironment:
         )
 
     # 3) SLURM
-    if _has_all("SLURM_PROCID", "SLURM_LOCALID"):
+    if (
+        _has_all("SLURM_PROCID", "SLURM_LOCALID")
+        and _has_any("SLURM_STEP_NUM_TASKS", "SLURM_NTASKS")
+        and _has_any(
+            "SLURM_NTASKS_PER_NODE",
+            "SLURM_TASKS_PER_NODE",
+            "SLURM_STEP_TASKS_PER_NODE",
+            "CUDA_VISIBLE_DEVICES",
+            "ROCR_VISIBLE_DEVICES",
+            "HIP_VISIBLE_DEVICES",
+        )
+    ):
         py_logger.debug("Detected SLURM distributed environment")
 
         # Prefer step-level task count if available, else fall back to job-level
-        global_world_size = _get_env("SLURM_STEP_NUM_TASKS", default=None)
+        global_world_size = _get_env("SLURM_STEP_NUM_TASKS", default=None, cast=int)
         if global_world_size is None:
             global_world_size = _get_int("SLURM_NTASKS", required=True)
 
@@ -224,9 +273,16 @@ def detect_distributed_environment() -> ClusterEnvironment:
             os.getenv("SLURM_STEP_TASKS_PER_NODE"),
         )
         if local_world_size is None:
+            # Try to retrieve it by counting the number of GPUs
+            local_world_size = _get_n_visible_devices()
+
+        if local_world_size is None or local_world_size <= 0:
+            # If is is still None, crash
             raise ValueError(
-                "Could not detect SLURM_NTASKS_PER_NODE nor SLURM_TASKS_PER_NODE "
-                "env variables in SLURM. Cannot determine local world size!"
+                "Could not determine local_world_size from SLURM tasks-per-node env vars "
+                "(SLURM_NTASKS_PER_NODE / SLURM_TASKS_PER_NODE / SLURM_STEP_TASKS_PER_NODE) "
+                "or from visible devices env vars (CUDA_VISIBLE_DEVICES / "
+                "ROCR_VISIBLE_DEVICES / HIP_VISIBLE_DEVICES)."
             )
 
         return ClusterEnvironment(
