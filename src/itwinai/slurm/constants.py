@@ -32,6 +32,13 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 #SBATCH --mem={memory}
 {exclusive_line}
 
+# Make sure that Hydra produces the whole output
+export HYDRA_FULL_ERROR=1
+
+# Set itwinai log level to "INFO" by default. For richer logs use "DEBUG"
+export ITWINAI_LOG_LEVEL=INFO
+
 {pre_exec_command}
 
-{exec_command}"""
+{exec_command}
+"""
