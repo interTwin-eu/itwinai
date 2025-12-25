@@ -11,6 +11,7 @@ Python SDK
    itwinai.pipeline
    itwinai.scalability_report.modules
    itwinai.serialization
+   itwinai.slurm
    itwinai.tests.modules
    itwinai.tf.modules
    itwinai.torch.modules

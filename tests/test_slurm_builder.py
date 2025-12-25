@@ -4,10 +4,8 @@ from unittest.mock import patch
 import pytest
 import typer
 
-from itwinai.slurm.slurm_script_builder import (
-    SlurmScriptBuilder,
-    SlurmScriptConfiguration,
-)
+from itwinai.slurm.configuration import SlurmScriptConfiguration
+from itwinai.slurm.script_builder import SlurmScriptBuilder
 
 
 @pytest.fixture
@@ -40,16 +38,13 @@ def test_slurm_script_directives(
     assert isinstance(slurm_config_with_all_fields.err_out, Path)
 
     save_dir = tmp_path
-    slurm_script_builder = SlurmScriptBuilder(
-        slurm_script_configuration=slurm_config_with_all_fields,
-        should_submit=False,
-        should_save=True,
-        save_dir=save_dir,
-    )
+    slurm_config_with_all_fields.save_script = True
+    slurm_config_with_all_fields.save_dir = save_dir
+    slurm_script_builder = SlurmScriptBuilder(config=slurm_config_with_all_fields)
     slurm_script_builder.process_script()
 
     assert save_dir.exists()
-    save_path = save_dir / f"{slurm_script_builder.slurm_script_configuration.job_name}.slurm"
+    save_path = save_dir / f"{slurm_script_builder.config.job_name}.slurm"
 
     with open(save_path) as f:
         file = f.read()
@@ -82,12 +77,10 @@ def test_save_slurm_script(
     should_submit_script: bool,
 ):
     save_dir = tmp_path
-    slurm_script_builder = SlurmScriptBuilder(
-        slurm_script_configuration=slurm_config_with_all_fields,
-        should_submit=should_submit_script,
-        should_save=should_save_script,
-        save_dir=save_dir,
-    )
+    slurm_config_with_all_fields.save_script = should_save_script
+    slurm_config_with_all_fields.submit_job = should_submit_script
+    slurm_config_with_all_fields.save_dir = save_dir
+    slurm_script_builder = SlurmScriptBuilder(config=slurm_config_with_all_fields)
     with patch("subprocess.run"):
         slurm_script_builder.process_script()
 
@@ -106,12 +99,10 @@ def test_submit_slurm_script(
     should_submit_script: bool,
 ):
     save_dir = tmp_path
-    slurm_script_builder = SlurmScriptBuilder(
-        slurm_script_configuration=slurm_config_with_all_fields,
-        should_submit=should_submit_script,
-        should_save=should_save_script,
-        save_dir=save_dir,
-    )
+    slurm_config_with_all_fields.save_script = should_save_script
+    slurm_config_with_all_fields.submit_job = should_submit_script
+    slurm_config_with_all_fields.save_dir = save_dir
+    slurm_script_builder = SlurmScriptBuilder(config=slurm_config_with_all_fields)
     with patch("subprocess.run") as mock_run:
         slurm_script_builder.process_script()
         if should_submit_script:
@@ -127,12 +118,10 @@ def test_save_slurm_script_twice(
     slurm_config_with_all_fields: SlurmScriptConfiguration,
 ):
     save_dir = tmp_path
-    slurm_script_builder = SlurmScriptBuilder(
-        slurm_script_configuration=slurm_config_with_all_fields,
-        should_submit=False,
-        should_save=True,
-        save_dir=save_dir,
-    )
+    slurm_config_with_all_fields.save_script = True
+    slurm_config_with_all_fields.submit_job = False
+    slurm_config_with_all_fields.save_dir = save_dir
+    slurm_script_builder = SlurmScriptBuilder(config=slurm_config_with_all_fields)
     slurm_script_builder.process_script()
     with pytest.raises(typer.Exit):
         slurm_script_builder.process_script()
@@ -143,12 +132,10 @@ def test_submit_slurm_script_twice(
     slurm_config_with_all_fields: SlurmScriptConfiguration,
 ):
     save_dir = tmp_path
-    slurm_script_builder = SlurmScriptBuilder(
-        slurm_script_configuration=slurm_config_with_all_fields,
-        should_submit=True,
-        should_save=False,
-        save_dir=save_dir,
-    )
+    slurm_config_with_all_fields.save_script = False
+    slurm_config_with_all_fields.submit_job = True
+    slurm_config_with_all_fields.save_dir = save_dir
+    slurm_script_builder = SlurmScriptBuilder(config=slurm_config_with_all_fields)
     with patch("subprocess.run"):
         slurm_script_builder.process_script()
         slurm_script_builder.process_script()
