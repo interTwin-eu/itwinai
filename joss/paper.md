@@ -107,11 +107,12 @@ unified framework for scalable AI workflows. It offers consistent interfaces for
 distributed training, supports large-scale hyperparameter optimization, and
 includes tools for profiling and code scalability analysis.
 
-Developed within the [interTwin](https://www.intertwin.eu/) project to support Digital Twin
-applications in physics and environmental sciences, `itwinai` is designed to be
-extensible and reusable. By consolidating core functionality into a single
-framework, it lowers the technical barrier to HPC adoption and enables
-researchers to focus on scientific objectives.
+Developed within the [interTwin](https://www.intertwin.eu/) project
+[@manzi_intertwin_2025] to support Digital Twin applications in physics and
+environmental sciences, `itwinai` is designed to be extensible and reusable. By
+consolidating core functionality into a single framework, it lowers the
+technical barrier to HPC adoption and enables researchers to focus on scientific
+objectives.
 
 # State of the field
 
