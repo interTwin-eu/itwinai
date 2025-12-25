@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doi_batch xmlns="http://www.crossref.org/schema/5.3.1"
+           xmlns:ai="http://www.crossref.org/AccessIndicators.xsd"
+           xmlns:rel="http://www.crossref.org/relations.xsd"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           version="5.3.1"
+           xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
+  <head>
+    <doi_batch_id>20250904085057-e520d610018f522a1cac648806c20ead0a9d5042</doi_batch_id>
+    <timestamp>20250904085057</timestamp>
+    <depositor>
+      <depositor_name>JOSS Admin</depositor_name>
+      <email_address>admin@theoj.org</email_address>
+    </depositor>
+    <registrant>The Open Journal</registrant>
+  </head>
+  <body>
+    <journal>
+      <journal_metadata>
+        <full_title>Journal of Open Source Software</full_title>
+        <abbrev_title>JOSS</abbrev_title>
+        <issn media_type="electronic">2475-9066</issn>
+        <doi_data>
+          <doi>10.21105/joss</doi>
+          <resource>https://joss.theoj.org</resource>
+        </doi_data>
+      </journal_metadata>
+      <journal_issue>
+        <publication_date media_type="online">
+          <month>01</month>
+          <year>1970</year>
+        </publication_date>
+        <journal_volume>
+          <volume>¿VOL?</volume>
+        </journal_volume>
+        <issue>¿ISSUE?</issue>
+      </journal_issue>
+      <journal_article publication_type="full_text">
+        <titles>
+          <title>itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems</title>
+        </titles>
+        <contributors>
+          <person_name sequence="first" contributor_role="author">
+            <given_name>Matteo</given_name>
+            <surname>Bunino</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0009-0008-5100-9300</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Jarl Sondre</given_name>
+            <surname>Sæther</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0009-0002-7971-2213</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Linus Maximilian</given_name>
+            <surname>Eickhoff</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0009-0006-6691-2821</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Anna Elisa</given_name>
+            <surname>Lappe</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0009-0009-4804-4188</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Kalliopi</given_name>
+            <surname>Tsolaki</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0000-0002-3192-4260</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Killian</given_name>
+            <surname>Verder</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Henry</given_name>
+            <surname>Mutegeki</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0009-0001-9940-1167</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Roman</given_name>
+            <surname>Machacek</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Maria</given_name>
+            <surname>Girone</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0000-0003-0261-8392</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Oleksandr</given_name>
+            <surname>Krochak</surname>
+            <affiliations>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0009-0007-2245-9452</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Mario</given_name>
+            <surname>Rüttgers</surname>
+            <affiliations>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
+              <institution><institution_name>Data-Driven Fluid Engineering (DDFE) Laboratory, Inha University, Incheon, Republic of Korea</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0000-0003-3917-8407</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Rakesh</given_name>
+            <surname>Sarma</surname>
+            <affiliations>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0000-0002-7069-4082</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
+            <given_name>Andreas</given_name>
+            <surname>Lintermann</surname>
+            <affiliations>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0000-0003-3321-6599</ORCID>
+          </person_name>
+        </contributors>
+        <publication_date>
+          <month>01</month>
+          <day>01</day>
+          <year>1970</year>
+        </publication_date>
+        <pages>
+          <first_page>¿PAGE?</first_page>
+        </pages>
+        <publisher_item>
+          <identifier id_type="doi">N/A</identifier>
+        </publisher_item>
+        <ai:program name="AccessIndicators">
+          <ai:license_ref applies_to="vor">http://creativecommons.org/licenses/by/4.0/</ai:license_ref>
+          <ai:license_ref applies_to="am">http://creativecommons.org/licenses/by/4.0/</ai:license_ref>
+          <ai:license_ref applies_to="tdm">http://creativecommons.org/licenses/by/4.0/</ai:license_ref>
+        </ai:program>
+        <rel:program>
+          <rel:related_item>
+            <rel:description>Software archive</rel:description>
+            <rel:inter_work_relation relationship-type="references" identifier-type="doi">10.5281</rel:inter_work_relation>
+          </rel:related_item>
+          <rel:related_item>
+            <rel:description>GitHub review issue</rel:description>
+            <rel:inter_work_relation relationship-type="hasReview" identifier-type="uri">https://github.com/openjournals</rel:inter_work_relation>
+          </rel:related_item>
+        </rel:program>
+        <doi_data>
+          <doi>N/A</doi>
+          <resource>https://joss.theoj.org/papers/N/A</resource>
+          <collection property="text-mining">
+            <item>
+              <resource mime_type="application/pdf">https://joss.theoj.org/papers/N/A.pdf</resource>
+            </item>
+          </collection>
+        </doi_data>
+        <citation_list>
+          <citation key="ray:2018">
+            <article_title>Ray: A distributed framework for emerging AI applications</article_title>
+            <author>Moritz</author>
+            <cYear>2018</cYear>
+            <unstructured_citation>Moritz, P., Nishihara, R., Wang, S., Tumanov, A., Liaw, R., Liang, E., Elibol, M., Yang, Z., Paul, W., Jordan, M. I., &amp; Stoica, I. (2018). Ray: A distributed framework for emerging AI applications. https://arxiv.org/abs/1712.05889</unstructured_citation>
+          </citation>
+          <citation key="interlink">
+            <article_title>interLink</article_title>
+            <author>Ciangottini</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2025</cYear>
+            <unstructured_citation>Ciangottini, D., Bianchini, G., &amp; Spiga, D. (2025). interLink. In GitHub repository. GitHub. https://github.com/interLink-hq/interLink</unstructured_citation>
+          </citation>
+          <citation key="tsolaki_2025_15120028">
+            <article_title>interTwin D4.6 final architecture design of the DTs capabilities for high energy physics, radio astronomy and gravitational-wave astrophysics</article_title>
+            <author>Tsolaki</author>
+            <doi>10.5281/zenodo.15120028</doi>
+            <cYear>2025</cYear>
+            <unstructured_citation>Tsolaki, K., Vallecorsa, S., Vallero, S., Asprea, L., Sarandrea, F., Komijani, J., Ray, G. S., Pidopryhora, Y., &amp; Campos, I. (2025). interTwin D4.6 final architecture design of the DTs capabilities for high energy physics, radio astronomy and gravitational-wave astrophysics (1 Under EC Review). Zenodo. https://doi.org/10.5281/zenodo.15120028</unstructured_citation>
+          </citation>
+          <citation key="saether_scalabiliy_2025">
+            <article_title>Scalability analysis of GlitchFlow with itwinai</article_title>
+            <author>Sæther</author>
+            <cYear>2025</cYear>
+            <unstructured_citation>Sæther, J. S., Bunino, M., &amp; Eickhoff, L. M. (2025). Scalability analysis of GlitchFlow with itwinai. Zenodo. https://zenodo.org/records/16882390</unstructured_citation>
+          </citation>
+          <citation key="mlflow">
+            <article_title>Accelerating the Machine Learning Lifecycle with MLflow</article_title>
+            <author>Zaharia</author>
+            <journal_title>IEEE Data Eng. Bull.</journal_title>
+            <volume>41</volume>
+            <cYear>2018</cYear>
+            <unstructured_citation>Zaharia, M. A., Chen, A., Davidson, A., Ghodsi, A., Hong, S. A., Konwinski, A., Murching, S., Nykodym, T., Ogilvie, P., Parkhe, M., Xie, F., &amp; Zumar, C. (2018). Accelerating the Machine Learning Lifecycle with MLflow. IEEE Data Eng. Bull., 41, 39–45. https://api.semanticscholar.org/CorpusID:83459546</unstructured_citation>
+          </citation>
+          <citation key="wandb">
+            <article_title>Weights &amp; Biases</article_title>
+            <author>wandb Contributors</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2025</cYear>
+            <unstructured_citation>wandb Contributors. (2025). Weights &amp; Biases. In GitHub repository. GitHub. https://github.com/wandb/wandb</unstructured_citation>
+          </citation>
+          <citation key="tensorboard">
+            <article_title>TensorBoard</article_title>
+            <author>TensorBoard Contributors</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2025</cYear>
+            <unstructured_citation>TensorBoard Contributors. (2025). TensorBoard. In GitHub repository. GitHub. https://github.com/tensorflow/tensorboard</unstructured_citation>
+          </citation>
+          <citation key="yprovml">
+            <article_title>yProvML</article_title>
+            <author>Padovani</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2025</cYear>
+            <unstructured_citation>Padovani, G., &amp; Fiore, S. (2025). yProvML. In GitHub repository. GitHub. https://github.com/HPCI-Lab/yProvML</unstructured_citation>
+          </citation>
+          <citation key="py_spy">
+            <article_title>py-spy: Sampling profiler for Python programs</article_title>
+            <author>Frederickson</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2018</cYear>
+            <unstructured_citation>Frederickson, B. (2018). py-spy: Sampling profiler for Python programs. In GitHub repository. GitHub. https://github.com/benfred/py-spy</unstructured_citation>
+          </citation>
+        </citation_list>
+      </journal_article>
+    </journal>
+  </body>
+</doi_batch>

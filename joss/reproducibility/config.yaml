@@ -1,0 +1,102 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+hdf5_file_location: /data/virgo_data.hdf5
+hdf5_dataset_name: virgo_dataset
+data_root: /data
+epochs: 1 #5
+chunk_size: 1000 # equivalent to chunk size
+batch_size: 64 # Note: not used for "training_pipeline"
+learning_rate: 0.0001
+strategy: ddp
+dist_backend: gloo # could be nccl
+checkpoint_path: checkpoints/epoch_{}.pth
+validation_proportion: 0.1
+rnd_seed: 42
+run_name: "run1"
+
+# To use the entire synthetic dataset that is generated prior to running the pipeline
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: data.TimeSeriesDatasetSplitter
+      train_proportion: 0.9
+      validation_proportion: 0.1
+      rnd_seed: 42
+      hdf5_file_location: ${hdf5_file_location}
+      chunk_size: ${chunk_size}
+      hdf5_dataset_name: ${hdf5_dataset_name}
+    - _target_: trainer.NoiseGeneratorTrainer
+      measure_gpu_data: False
+      enable_torch_profiling: True
+      measure_epoch_time: True
+      run_name: ${run_name}
+      config:
+        generator: simple #unet
+        batch_size: 1
+        optim_lr: ${learning_rate}
+        loss: l1
+        save_best: true
+        shuffle_train: true
+      num_epochs: ${epochs}
+      strategy: ${strategy}
+      checkpoint_path: ${checkpoint_path}
+      random_seed: 17
+      profiling_wait_epochs: 0
+      profiling_warmup_epochs: 0
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 1
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: Noise simulator (Virgo)
+            log_freq: batch
+
+# To use a small dataset that is generated within the pipeline
+training_pipeline_small:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: data.TimeSeriesDatasetGenerator
+      data_root: ${data_root}
+      rnd_seed: 42
+      num_datapoints: 1000
+    - _target_: data.TimeSeriesDatasetSplitterSmall
+      train_proportion: 0.9
+      validation_proportion: 0.1
+      rnd_seed: 42
+    - _target_: data.TimeSeriesProcessorSmall
+      name: Virgo Small Dataset
+    - _target_: trainer.NoiseGeneratorTrainer
+      config:
+        generator: simple #unet
+        batch_size: ${batch_size}
+        optim_lr: ${learning_rate}
+        loss: l1
+        save_best: true
+        shuffle_train: true
+        dist_backend: ${dist_backend}
+      measure_gpu_data: False
+      enable_torch_profiling: True
+      measure_epoch_time: True
+      # run_name: ${run_name}
+      num_epochs: ${epochs}
+      strategy: ${strategy}
+      checkpoint_path: ${checkpoint_path}
+      random_seed: 17
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: epoch
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: virgo-small
+            log_freq: batch
