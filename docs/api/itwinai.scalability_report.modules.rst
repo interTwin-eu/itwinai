@@ -2,7 +2,7 @@ itwinai.scalability_report
 ==========================
 
 
-data.py
+data
 +++++++
 .. automodule:: itwinai.scalability_report.data
    :members:
@@ -11,7 +11,7 @@ data.py
    :member-order: bysource
 
 
-plot.py
+plot
 +++++++
 .. automodule:: itwinai.scalability_report.plot
    :members:
@@ -20,7 +20,7 @@ plot.py
    :member-order: bysource
 
 
-reports.py
+reports
 ++++++++++
 .. automodule:: itwinai.scalability_report.reports
    :members:
@@ -29,7 +29,7 @@ reports.py
    :member-order: bysource
 
 
-utils.py
+utils
 ++++++++
 .. automodule:: itwinai.scalability_report.utils
    :members:

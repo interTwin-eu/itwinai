@@ -95,7 +95,7 @@ Once resources are available, the command will return a ``JOBID``. Use it to jum
 
 Remember to load the correct environment modules before activating the python virtual environment.
 
-Alternatively, if you don’t need to open an interactive shell on the compute node allocated
+Alternatively, if you don't need to open an interactive shell on the compute node allocated
 with the ``salloc`` command,
 you can directly run a command on the allocated node(s) by prefixing your command with ``srun``.
 This approach ensures that your command is executed on the compute node rather than on the login node.
@@ -136,20 +136,15 @@ command.
 Generating SLURM Script
 +++++++++++++++++++++++
 
-To generate and submit a SLURM script, you can use the following command:
+To generate and submit a SLURM script, provide a SLURM YAML file and optionally submit/save it:
 
 .. code-block:: bash
 
-   itwinai generate-slurm
+   itwinai generate-slurm -c slurm_config.yaml [-j] [-s]
 
-This will use the default variables for everything and will preview it in the console. To
-launch the script you can add ``-j`` and to save the script you can add ``-s``. You can
-override variables by setting flags. For example, to set the job name to ``my_test_job``, you
-can do the following:
-
-.. code-block:: bash
-
-   itwinai generate-slurm --job-name my_test_job
+With no flags, the script is generated and printed. ``-j/--submit-job`` will submit it,
+``-s/--save-script`` will write it to disk. All other settings are taken from the provided
+SLURM config file.
 
 For a full list of options, add the ``--help`` flag:
 
@@ -176,11 +171,11 @@ configuration file:
     partition: develbooster
 
     # Which distributed strategy/framework to use    
-    dist_strat: ddp # "ddp", "deepspeed" or "horovod"
+    distributed_strategy: ddp # "ddp", "deepspeed" or "horovod"
 
-    std_out: slurm_job_logs/${dist_strat}.out
-    err_out: slurm_job_logs/${dist_strat}.err
-    job_name: ${dist_strat}-job
+    std_out: slurm_job_logs/${distributed_strategy}.out
+    err_out: slurm_job_logs/${distributed_strategy}.err
+    job_name: ${distributed_strategy}-job
 
     num_nodes: 1
     gpus_per_node: 4
@@ -194,10 +189,7 @@ If this file is called ``slurm_config.yaml``, then you would specify it as follo
 
    itwinai generate-slurm -c slurm_config.yaml
 
-You can override arguments from the configuration file in the CLI if you pass them
-after the config file. For example, if you want to use everything from the configuration
-file but want a different job name without changing the config, you can do the following:
-
-.. code-block:: bash
-
-   itwinai generate-slurm -c slurm_config.yaml --job-name different_job_name
+You can override submission/saving from the command line with ``-j``/``-s``; all other
+fields are read directly from the YAML. See :class:`itwinai.slurm.configuration.MLSlurmBuilderConfig`
+and :class:`itwinai.slurm.configuration.SlurmScriptConfiguration` for field descriptions and
+default values.

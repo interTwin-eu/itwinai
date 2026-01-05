@@ -24,6 +24,7 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 
 # Resource allocation
 #SBATCH --nodes={num_nodes}
+#SBATCH --ntasks={num_tasks}
 #SBATCH --ntasks-per-node={num_tasks_per_node}
 #SBATCH --cpus-per-task={cpus_per_task}
 #SBATCH --gpus-per-node={gpus_per_node}
@@ -31,6 +32,13 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 #SBATCH --mem={memory}
 {exclusive_line}
 
+# Make sure that Hydra produces the whole output
+export HYDRA_FULL_ERROR=1
+
+# Set itwinai log level to "INFO" by default. For richer logs use "DEBUG"
+export ITWINAI_LOG_LEVEL=INFO
+
 {pre_exec_command}
 
-{exec_command}"""
+{exec_command}
+"""

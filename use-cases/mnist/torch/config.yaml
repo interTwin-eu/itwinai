@@ -8,9 +8,12 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+# Default fields (always needed)
+run_name: mnist-usecase-0
+strategy: ddp
+
 # General config
 experiment_name: MNIST
-run_name: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
 batch_size: 128
@@ -22,7 +25,6 @@ fp16_allreduce: False
 use_adasum: False
 gradient_predivide_factor: 1.0
 epochs: 5
-strategy: ddp
 test_data_path: mnist-sample-data
 inference_model_mlflow_uri: mnist-pre-trained.pth
 predictions_dir: mnist-predictions
@@ -33,7 +35,7 @@ checkpoint_every: 1
 
 # Ray
 ray_num_workers: 2
-ray_gpus_per_worker: 1  # can be 0.0 < 1.0 as long as num_workers set to 1
+ray_gpus_per_worker: 1 # can be 0.0 < 1.0 as long as num_workers set to 1
 ray_cpus_per_worker: 3
 ray_num_trials: 1 # how many HPO trials
 
@@ -85,7 +87,8 @@ training_pipeline:
         _target_: ray.tune.TuneConfig
         num_samples: ${ray_num_trials}
         reuse_actors: True
-        scheduler: null
+        scheduler:
+          null
           # _target_: ray.tune.schedulers.ASHAScheduler
           # metric: loss
           # mode: min
@@ -133,7 +136,7 @@ training_pipeline:
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
       checkpoints_location: ${checkpoints_location}
-      
+
 inference_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
@@ -213,7 +216,7 @@ training_pipeline_gan:
         _target_: model.Discriminator
         d_hidden: 64
       epochs: ${epochs}
-      
+
       logger:
         _target_: itwinai.loggers.LoggersCollection
         loggers:
