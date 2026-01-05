@@ -66,7 +66,7 @@ authors:
 affiliations:
  - name: European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland
    index: 1
- - name: Simulation and Data Lab Fluids & Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany
+ - name: Forschungszentrum Jülich, Jülich Supercomputing Center, Germany
    index: 2
  - name: Data-Driven Fluid Engineering (DDFE) Laboratory, Inha University, Incheon, Republic of Korea
    index: 3
