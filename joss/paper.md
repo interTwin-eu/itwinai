@@ -33,6 +33,7 @@ authors:
     surname: Verder
     email: killian.verder@cern.ch
     affiliation: 1
+    orcid: 0009-0006-4819-3229
   - given-names: Henry
     surname: Mutegeki
     email: henry.mutegeki@cern.ch
@@ -42,6 +43,7 @@ authors:
     surname: Machacek
     email: roman.machacek@cern.ch
     affiliation: 1
+    orcid: 0009-0007-9976-4420
   - given-names: Maria
     surname: Girone
     affiliation: 1
