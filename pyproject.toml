@@ -92,6 +92,7 @@ hpo = [
   "hpbandster>=0.7.0",
   "gpy>=1.13.2",
 ]
+modelhub = ["hypha-rpc", "dotenv", "httpx", "hypha-artifact"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
