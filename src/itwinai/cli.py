@@ -33,14 +33,13 @@ from typing import Any, Dict, List, cast
 
 import hydra
 import typer
+import requests
+import certifi
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 from validators import url
 
 from itwinai.constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
-
-import requests
-import certifi
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -1121,7 +1120,7 @@ def upload_model_to_hub(
                 cli_logger.error(f"Error output:\n{result.stderr}")
             raise typer.Exit(code=1)
 
-        cli_logger.info("✓ Model uploaded successfully!")
+        cli_logger.info("Model uploaded!")
 
     except FileNotFoundError:
         cli_logger.error(f"Python interpreter not found: {sys.executable}")
