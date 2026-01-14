@@ -1138,7 +1138,7 @@ def upload_model_to_hub(
 
 def _load_env_file(env_path: Path, env_dict: dict):
     """Load environment variables from a .env file into the provided dictionary."""
-    with open(env_path, "r") as f:
+    with open(env_path) as f:
         for line in f:
             line = line.strip()
             # Skip empty lines and comments
@@ -1150,11 +1150,12 @@ def _load_env_file(env_path: Path, env_dict: dict):
                 key = key.strip()
                 value = value.strip()
                 # Remove quotes if present
-                if value.startswith('"') and value.endswith('"'):
+                if (
+                    (value.startswith('"') and value.endswith('"')) or
+                    (value.startswith("'") and value.endswith("'"))
+                ):
                     value = value[1:-1]
-                elif value.startswith("'") and value.endswith("'"):
-                    value = value[1:-1]
-                env_dict[key] = value
+
 
 if __name__ == "__main__":
     app()
