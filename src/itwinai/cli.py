@@ -31,10 +31,10 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any, Dict, List, cast
 
-import hydra
-import typer
-import requests
 import certifi
+import hydra
+import requests
+import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 from validators import url
