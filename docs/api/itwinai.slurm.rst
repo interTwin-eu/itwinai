@@ -1,20 +1,18 @@
-itwinai.tensorflow
-==================
+itwinai.slurm
+================
 
-distributed
-+++++++++++
-
-.. automodule:: itwinai.tensorflow.distributed
+configuration
++++++++++++++
+.. automodule:: itwinai.slurm.configuration
    :members:
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
 
 
-trainer
-+++++++
-
-.. automodule:: itwinai.tensorflow.trainer
+script_builder
+++++++++++++++
+.. automodule:: itwinai.slurm.script_builder
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,8 +21,7 @@ trainer
 
 utils
 +++++
-
-.. automodule:: itwinai.tensorflow.utils
+.. automodule:: itwinai.slurm.utils
    :members:
    :undoc-members:
    :show-inheritance:

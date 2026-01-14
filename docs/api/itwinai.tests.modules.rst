@@ -2,7 +2,7 @@ itwinai.tests
 =============
 
 
-dummy_components.py
+dummy_components
 +++++++++++++++++++
 
 .. automodule:: itwinai.tests.dummy_components
@@ -12,7 +12,7 @@ dummy_components.py
    :member-order: bysource
 
 
-exceptions.py
+exceptions
 +++++++++++++
 
 .. automodule:: itwinai.tests.exceptions
@@ -22,7 +22,7 @@ exceptions.py
    :member-order: bysource
 
 
-sanity_check.py
+sanity_check
 +++++++++++++++
 
 .. automodule:: itwinai.tests.sanity_check

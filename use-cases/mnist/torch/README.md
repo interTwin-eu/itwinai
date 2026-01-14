@@ -2,13 +2,18 @@
 
 **Integration author(s)**: Matteo Bunino (CERN)
 
-In this simple use case integration we demostrate how to use itwinai for a set of simple
+In this simple use case integration we demonstrate how to use itwinai for a set of simple
 use cases based on the popular MNIST dataset.
 
 ## Training a CNN classifier
 
 It is possible to launch the training of a CNN classifier on the MNIST dataset using the
 YAML configuration file describing the whole training workflow.
+In this case, the `itwinai exec-pipeline` command is used to execute a ML workflow defined
+in the `config.yaml` file. You can find more details on this command in the [`exec-pipeline`](
+https://itwinai.readthedocs.io/stable/api/cli_reference.html#exec-pipeline) CLI reference.
+If not specified differently, the pipeline defined under `training_pipeline` is selected by
+default.
 
 ```bash
 # Run the whole training pipeline

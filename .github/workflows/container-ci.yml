@@ -47,7 +47,7 @@ jobs:
             dockerfile: "../env-files/torch/slim.Dockerfile"
             nickname: "torch-slim"
             tag_template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
-            skip_hpc: false
+            skip_hpc: true
             skip_singularity: true
           - base_img_name: "quay.io/jupyter/minimal-notebook:python-3.12"
             dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Build and Test with Custom Action
         uses: ./.github/actions/build-container
