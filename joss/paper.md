@@ -238,7 +238,7 @@ identify the most efficient configuration and distribution strategy, rather than
 relying on a single indicator. \autoref{fig:speedup} and
 \autoref{fig:compvsother} show the scalability of the physics use case from
 INFN[^infn] targeting gravitational-wave analysis at the Virgo[^virgo]
-interferometer [@tsolaki_2025_15120028] [@saether_scalabiliy_2025].
+interferometer [@tsolaki_2025_15120028; @saether_scalabiliy_2025].
 
 [^infn]: Istituto Nazionale di Fisica Nucleare
 [infn.it](https://www.infn.it/en/) (Accessed on 2025-08-14).
