@@ -8,6 +8,7 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
 #
 # --------------------------------------------------------------------------------------
 # Command-line interface for the itwinai Python library.
@@ -30,7 +31,9 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any, Dict, List, cast
 
+import certifi
 import hydra
+import requests
 import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
@@ -947,6 +950,210 @@ def tensorboard_ui(
     import subprocess
 
     subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
+
+
+@app.command()
+def upload_model_to_hub(
+    model_dir: Annotated[
+        str,
+        typer.Argument(
+            help="Path to directory with model checkpoint, manifest.yaml and metadata."
+        ),
+    ],
+    hub_url: Annotated[
+        str | None,
+        typer.Option(
+            "--hub-url",
+            help="URL of model hub server. If not provided, use HYPHA_SERVER_URL or .env file",
+        ),
+    ] = None,
+    api_token: Annotated[
+        str | None,
+        typer.Option(
+            "--api-token",
+            help="API token. If not provided, use HYPHA_TOKEN or .env file.",
+        ),
+    ] = None,
+    env_file: Annotated[
+        str | None,
+        typer.Option(
+            "--env-file",
+            help="Path to .env file containing MODEL_HUB_URL and MODEL_HUB_API_TOKEN.",
+        ),
+    ] = None,
+    upload_script: Annotated[
+        str | None,
+        typer.Option(
+            "--upload-script",
+            help="Path to upload_model.py script. If not provided, downloads from GitHub.",
+        ),
+    ] = None,
+):
+    """Upload a model checkpoint to the AI Model Hub.
+    Please note that this command requires internet connection to push to the model hub.
+
+    The model directory should contain:
+    - model checkpoint file(s)
+    - manifest.yaml with model id and metadata
+    - (optional) metadata.json with additional information
+    """
+    import subprocess
+    import tempfile
+
+    model_path = Path(model_dir).resolve()
+
+    # Validate if model directory exists and is a directory
+    if not model_path.exists():
+        cli_logger.error(f"Model directory '{model_path}' does not exist!")
+        raise typer.Exit(code=1)
+
+    if not model_path.is_dir():
+        cli_logger.error(f"'{model_path}' is not a directory!")
+        raise typer.Exit(code=1)
+
+    # Check if the file manifest.yaml exists
+    manifest_file = model_path / "manifest.yaml"
+    if not manifest_file.exists():
+        cli_logger.error(
+            f"No manifest.yaml found in '{model_path}'. "
+            "The model directory must contain a manifest.yaml file with the model id."
+        )
+        raise typer.Exit(code=1)
+
+    # Load environment variables from .env file if specified and if file exists
+    env_vars = os.environ.copy()
+
+    if env_file:
+        env_path = Path(env_file)
+        if not env_path.exists():
+            cli_logger.error(f"Specified .env file '{env_path}' does not exist!")
+            raise typer.Exit(code=1)
+        _load_env_file(env_path, env_vars)
+        cli_logger.info(f"Loaded environment from {env_path}")
+    elif Path(".env").exists():
+        _load_env_file(Path(".env"), env_vars)
+        cli_logger.info("Loaded environment from .env file in current directory")
+
+    # Get credentials with priority: CLI args > env vars > .env file
+    final_hub_url = hub_url or env_vars.get("HYPHA_SERVER_URL")
+    final_api_token = api_token or env_vars.get("HYPHA_TOKEN")
+
+    if not final_hub_url:
+        cli_logger.error(
+            "Model hub URL not provided. Set it via:\n"
+            "  - --hub-url option\n"
+            "  - HYPHA_SERVER_URL environment variable\n"
+            "  - HYPHA_SERVER_URL in .env file"
+        )
+        raise typer.Exit(code=1)
+
+    if not final_api_token:
+        cli_logger.error(
+            "API token not provided. Set it via:\n"
+            "  - --api-token option\n"
+            "  - HYPHA_TOKEN environment variable\n"
+            "  - HYPHA_TOKEN in .env file"
+        )
+        raise typer.Exit(code=1)
+
+    # Update environment variables for subprocess
+    env_vars["HYPHA_SERVER_URL"] = final_hub_url
+    env_vars["HYPHA_TOKEN"] = final_api_token
+
+    # Get or download the upload script
+    upload_script_path = None
+    temp_dir = None
+
+    if upload_script:
+        # User provided a path to the upload script
+        upload_script_path = Path(upload_script)
+        if not upload_script_path.exists():
+            cli_logger.error(f"Upload script not found at: {upload_script_path}")
+            raise typer.Exit(code=1)
+    else:
+        # Download the script from GitHub
+        cli_logger.info("Downloading upload_model.py from GitHub...")
+        github_url = "https://raw.githubusercontent.com/RI-SCALE/ai-model-hub-example/main/upload_model.py"
+
+        try:
+            temp_dir = tempfile.mkdtemp()
+            upload_script_path = Path(temp_dir) / "upload_model.py"
+
+            response = requests.get(
+                github_url,
+                timeout=15,
+                verify=certifi.where(),
+            )
+            response.raise_for_status()
+            upload_script_path.write_text(response.text, encoding="utf-8")
+
+            cli_logger.info(f"Downloaded upload script to: {upload_script_path}")
+
+        except Exception as e:
+            cli_logger.error(f"Failed to download upload script: {e}")
+            if temp_dir:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            raise typer.Exit(code=1)
+
+    # Upload the model
+    cli_logger.info(f"Uploading model from '{model_path}' to {final_hub_url}")
+
+    try:
+        # Call the upload script as subprocess
+        # The original usage is: python upload_model.py model_example1
+        result = subprocess.run(
+            [sys.executable, str(upload_script_path), str(model_path)],
+            env=env_vars,
+            capture_output=True,
+            text=True,
+            cwd=str(upload_script_path.parent),  # Run from script directory
+            check=False,
+        )
+
+        # Print stdout (even if there's an error, this maybe be useful for debugging)
+        if result.stdout:
+            cli_logger.info(result.stdout)
+
+        if result.returncode != 0:
+            cli_logger.error(f"Upload failed with return code {result.returncode}")
+            if result.stderr:
+                cli_logger.error(f"Error output:\n{result.stderr}")
+            raise typer.Exit(code=1)
+
+        cli_logger.info("Model uploaded!")
+
+    except FileNotFoundError:
+        cli_logger.error(f"Python interpreter not found: {sys.executable}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        cli_logger.error(f"Failed to upload model: {e}")
+        py_logger.exception("Full error trace:")
+        raise typer.Exit(code=1)
+    finally:
+        # Clean up temporary directory
+        if temp_dir and Path(temp_dir).exists():
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def _load_env_file(env_path: Path, env_dict: dict):
+    """Load environment variables from a .env file into the provided dictionary."""
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines and comments
+            if not line or line.startswith("#"):
+                continue
+            # Parse KEY=VALUE
+            if "=" in line:
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                # Remove quotes if present
+                if (
+                    (value.startswith('"') and value.endswith('"')) or
+                    (value.startswith("'") and value.endswith("'"))
+                ):
+                    value = value[1:-1]
 
 
 if __name__ == "__main__":
