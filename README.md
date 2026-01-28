@@ -47,7 +47,8 @@ or join us on [Discord](https://discord.gg/EZRtuK9Vjr).
 
 If you use **itwinai** in your research, please cite:
 
-> Bunino et al., (2026). *itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems*. **Journal of Open Source Software**, 11(117), 9409. <https://doi.org/10.21105/joss.09409>
+> Bunino et al., (2026). *itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems*.
+> **Journal of Open Source Software**, 11(117), 9409. <https://doi.org/10.21105/joss.09409>
 
 BibTeX:
 
@@ -60,7 +61,9 @@ BibTeX:
   volume = {11},
   number = {117},
   pages = {9409},
-  author = {Bunino, Matteo and Sæther, Jarl and Eickhoff, Linus and Lappe, Anna and Tsolaki, Kalliopi and Verder, Killian and Mutegeki, Henry and Machacek, Roman and Girone, Maria and Krochak, Oleksandr and Rüttgers, Mario and Sarma, Rakesh and Lintermann, Andreas},
+  author = {Bunino, Matteo and Sæther, Jarl and Eickhoff, Linus and Lappe, Anna and Tsolaki, Kalliopi and
+            Verder, Killian and Mutegeki, Henry and Machacek, Roman and Girone, Maria and Krochak, Oleksandr and
+            Rüttgers, Mario and Sarma, Rakesh and Lintermann, Andreas},
   title = {itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems},
   journal = {Journal of Open Source Software}
 }
