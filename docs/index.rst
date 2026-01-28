@@ -200,3 +200,34 @@ Indices and Tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+Citation
+========
+
+If you use **itwinai** in your research, please cite:
+
+.. code-block:: text
+
+   Bunino et al., (2026). itwinai: A Python Toolkit for Scalable Scientific
+   Machine Learning on HPC Systems. Journal of Open Source Software, 11(117),
+   9409. https://doi.org/10.21105/joss.09409
+
+BibTeX:
+
+.. code-block:: bibtex
+
+   @article{Bunino2026,
+     doi = {10.21105/joss.09409},
+     url = {https://doi.org/10.21105/joss.09409},
+     year = {2026},
+     publisher = {The Open Journal},
+     volume = {11},
+     number = {117},
+     pages = {9409},
+     author = {Bunino, Matteo and Sæther, Jarl and Eickhoff, Linus and Lappe, Anna and
+               Tsolaki, Kalliopi and Verder, Killian and Mutegeki, Henry and Machacek,
+               Roman and Girone, Maria and Krochak, Oleksandr and Rüttgers, Mario and
+               Sarma, Rakesh and Lintermann, Andreas},
+     title = {itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems},
+     journal = {Journal of Open Source Software}
+   }
