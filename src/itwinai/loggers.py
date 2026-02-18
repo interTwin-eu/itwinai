@@ -1267,11 +1267,11 @@ class Prov4MLLogger(Logger):
         self.create_svg = create_svg
 
         import mlflow
-        import yprov4ml as prov4ml
+        import yprov4ml
 
-        self.prov4ml = prov4ml
+        self.yprov4ml = yprov4ml
         self.mlflow = mlflow
-        self.context = getattr(self.prov4ml, "Context", None)
+        self.context = getattr(self.yprov4ml, "Context", None)
         self.param_context = "training"
 
     @check_not_initialized
@@ -1292,7 +1292,7 @@ class Prov4MLLogger(Logger):
             f"Initializing {self.__class__.__name__} on rank {rank}"
         )
 
-        self.prov4ml.start_run(
+        self.yprov4ml.start_run(
             experiment_name=self.experiment_name,
             prov_user_namespace=self.prov_user_namespace,
             provenance_save_dir=self.provenance_save_dir,
@@ -1309,7 +1309,7 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        self.prov4ml.end_run(
+        self.yprov4ml.end_run(
             create_graph=self.create_graph,
             create_svg=self.create_svg
         )
@@ -1324,7 +1324,7 @@ class Prov4MLLogger(Logger):
 
         # Save hyperparameters
         for param_name, val in params.items():
-            self.prov4ml.log_param(
+            self.yprov4ml.log_param(
                 key=param_name,
                 value=val,
                 context=ctx
@@ -1377,7 +1377,7 @@ class Prov4MLLogger(Logger):
         ctx = self._normalize_context(context)
 
         if kind == "metric":
-            self.prov4ml.log_metric(
+            self.yprov4ml.log_metric(
                 key=identifier,
                 value=item,
                 context=ctx,
@@ -1385,7 +1385,7 @@ class Prov4MLLogger(Logger):
             )
         elif kind == "flops_pb":
             model, batch = item
-            self.prov4ml.log_flops_per_batch(
+            self.yprov4ml.log_flops_per_batch(
                 label=identifier,
                 model=model,
                 batch=batch,
@@ -1394,7 +1394,7 @@ class Prov4MLLogger(Logger):
             )
         elif kind == "flops_pe":
             model, dataset = item
-            self.prov4ml.log_flops_per_epoch(
+            self.yprov4ml.log_flops_per_epoch(
                 label=identifier,
                 model=model,
                 dataset=dataset,
@@ -1402,19 +1402,19 @@ class Prov4MLLogger(Logger):
                 step=step,
             )
         elif kind == "system":
-            self.prov4ml.log_system_metrics(context=ctx, step=step)
+            self.yprov4ml.log_system_metrics(context=ctx, step=step)
         elif kind == "carbon":
-            self.prov4ml.log_carbon_metrics(context=ctx, step=step)
+            self.yprov4ml.log_carbon_metrics(context=ctx, step=step)
         elif kind == "execution_time":
-            self.prov4ml.log_current_execution_time(
+            self.yprov4ml.log_current_execution_time(
                 label=identifier, context=ctx, step=step
             )
         elif kind == "model":
-            self.prov4ml.save_model_version(
+            self.yprov4ml.save_model_version(
                 model_name=identifier, model=item, context=ctx, step=step
             )
         elif kind == "best_model":
-            self.prov4ml.log_model(
+            self.yprov4ml.log_model(
                 model_name=identifier,
                 model=item,
                 log_model_info=True,
@@ -1424,25 +1424,15 @@ class Prov4MLLogger(Logger):
             from torch.utils.data import DataLoader
 
             if isinstance(item, DataLoader):
-                self.prov4ml.log_dataset(
+                self.yprov4ml.log_dataset(
                     dataset_label=identifier, dataset=item
                 )
             else:
-                self.prov4ml.log_param(
+                self.yprov4ml.log_param(
                     key=identifier,
                     value=item,
                     context=self._normalize_context(self.param_context)
                 )
-        elif kind == "prov_documents":
-            prov_docs = self.prov4ml.log_provenance_documents(
-                create_graph=True, create_svg=True
-            )
-
-            # Upload to MLFlow
-            if self.mlflow.active_run() is not None:
-                for f in prov_docs:
-                    if f:
-                        self.mlflow.log_artifact(f)
 
 
 class EmptyLogger(Logger):
