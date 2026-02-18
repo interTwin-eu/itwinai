@@ -68,7 +68,7 @@ COPY src src
 # install uv so that uv → /usr/local/bin/uv
 RUN wget -qO - https://astral.sh/uv/install.sh \
     | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
-RUN uv venv /opt/venv 
+RUN uv venv /opt/venv
 ENV UV_PYTHON=/opt/venv/bin/python
 
 RUN uv pip install --no-cache-dir --upgrade pip wheel \
@@ -82,7 +82,7 @@ RUN uv pip install --no-cache-dir --upgrade pip wheel \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
+    # "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     # Minimal installation to run CI tests in the container with pytest
     pytest \
     pytest-xdist \
@@ -93,7 +93,7 @@ RUN uv pip install --no-cache-dir \
     # Needed when working with uv venv
     --no-build-isolation \
     deepspeed==0.16.8 \
-    git+https://github.com/horovod/horovod.git@3a31d93 
+    git+https://github.com/horovod/horovod.git@3a31d93
 
 
 # Installation sanity check
