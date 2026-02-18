@@ -59,7 +59,7 @@ ENV VIRTUAL_ENV=/app/.venv \
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
-    --optional-deps prov4ml \
+    --optional-deps yprov4ml \
     --optional-deps ray
 
 COPY env-files/torch/skinny.Dockerfile Dockerfile

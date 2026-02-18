@@ -100,7 +100,7 @@ RUN uv pip install --no-cache-dir \
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
-    --optional-deps prov4ml \
+    --optional-deps yprov4ml \
     --optional-deps ray
 
 
@@ -154,7 +154,7 @@ RUN echo 'PATH="/opt/venv/bin:$PATH"' >> /etc/profile
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
-    --optional-deps prov4ml \
+    --optional-deps yprov4ml \
     --optional-deps ray
 
 WORKDIR /app
