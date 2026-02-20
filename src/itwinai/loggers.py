@@ -576,8 +576,7 @@ class MLFlowLogger(Logger):
                   Defaults to None.
                 - ``run_name`` (Optional[str]): name of the MLFlow run.
                   Defaults to None.
-                - ``parent_run_id`` (Optional[str]): parent run ID to
-                attach to.
+                - ``parent_run_id`` (Optional[str]): parent run ID to attach to.
 
         Returns:
             mlflow.ActiveRun: active MLFlow run.
