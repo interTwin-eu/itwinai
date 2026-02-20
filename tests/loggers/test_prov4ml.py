@@ -192,3 +192,26 @@ def test_log_best_model(logger_instance):
             log_model_info=True,
             log_model_layers=False
         )
+
+
+def test_log_prov_documents(logger_instance, mlflow_run):
+    logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
+
+    with patch("yprov4ml.log_provenance_documents") as log_prov_documents:
+        log_prov_documents.return_value = ["doc1", "doc2"]
+
+        with patch("mlflow.log_artifact") as mlflow_log_artifact:
+            logger_instance.log(
+                item=None,
+                identifier=None,
+                kind="prov_documents",
+                step=1
+            )
+
+            log_prov_documents.assert_called_once_with(
+                create_graph=True,
+                create_svg=True
+            )
+            mlflow_log_artifact.assert_any_call("doc1")
+            mlflow_log_artifact.assert_any_call("doc2")

@@ -1433,6 +1433,16 @@ class Prov4MLLogger(Logger):
                     value=item,
                     context=self._normalize_context(self.param_context)
                 )
+        elif kind == "prov_documents":
+            prov_docs = self.yprov4ml.log_provenance_documents(
+                create_graph=True, create_svg=True
+            )
+
+            # Upload to MLFlow
+            if self.mlflow.active_run() is not None:
+                for f in prov_docs:
+                    if f:
+                        self.mlflow.log_artifact(f)
 
 
 class EmptyLogger(Logger):
