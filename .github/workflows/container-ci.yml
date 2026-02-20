@@ -12,7 +12,6 @@ name: Container CI
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
   # If not triggered on push, but on PR, the commit hash is a bit weird
   # pull_request:
@@ -61,19 +60,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Determine Docker tag
-        id: tag
-        run: |
-          # Default tag is 'latest' for main branch
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "DOCKER_TAG=\"latest\"" >> "$GITHUB_ENV"
-          else
-            # Use branch name for manual or feature builds
-            TAG_NAME=${GITHUB_REF_NAME//\//-}
-            echo "DOCKER_TAG=\"$TAG_NAME\"" >> "$GITHUB_ENV"
-          fi
-        shell: bash
-
       - name: Build and Test with Custom Action
         uses: ./.github/actions/build-container
         with:
@@ -90,4 +76,3 @@ jobs:
           singularity_password: ${{ secrets.SINGULARITY_PWD }}
           singularity_username: ${{ secrets.SINGULARITY_USR }}
           release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
-          branch_tag: ${{ steps.tag.outputs.tag }}

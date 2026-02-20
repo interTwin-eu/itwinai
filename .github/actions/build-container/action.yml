@@ -76,10 +76,6 @@ inputs:
   singularity_username:
     description: "Username for Singularity registry"
     required: false
-  branch_tag:
-    description: "Branch tag for the image"
-    required: false
-    default: ""
 
 runs:
   using: "composite"
@@ -100,7 +96,7 @@ runs:
 
     - name: Checkout
       uses: actions/checkout@v4
-
+    
     - name: Move Docker directory
       if: ${{ inputs.free_disk_space == 'true' }}
       shell: bash
@@ -168,7 +164,7 @@ runs:
           --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base_img_name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           $([[ "${{ inputs.build_arm }}" == "true" ]] && echo '--build-arm' || echo '')
           dev-pipeline
-          --tag-template ${{ inputs.branch_tag != '' && inputs.branch_tag || inputs.tag_template }}-${{ env.COMMIT_HASH }}
+          --tag-template ${{ inputs.tag_template }}-${{ env.COMMIT_HASH }}
           --framework TORCH
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
@@ -179,7 +175,7 @@ runs:
           INTERLINK_VALUES: ${{ inputs.interlink_values }}
           SINGULARITY_PWD: ${{ inputs.singularity_password }}
           SINGULARITY_USR: ${{ inputs.singularity_username }}
-
+    
     - name: Run Integration Test (release pipeline)
       if: ${{ inputs.release == 'true' }}
       uses: dagger/dagger-for-github@v7
@@ -201,7 +197,7 @@ runs:
           release-pipeline
           --values env:INTERLINK_VALUES
           --framework TORCH
-          --tag-template ${{ inputs.branch_tag != '' && inputs.branch_tag || inputs.tag_template }}
+          --tag-template ${{ inputs.tag_template }}
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
           $([[ "${{ inputs.skip_hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
