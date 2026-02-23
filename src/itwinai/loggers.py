@@ -1184,7 +1184,7 @@ class Prov4MLLogger(Logger):
         self,
         prov_user_namespace: str = "www.example.org",
         experiment_name: str = "experiment_name",
-        provenance_save_dir: Path | str = "mllogs/prov_logs",
+        provenance_save_dir: str = "mllogs/prov_logs",
         save_after_n_logs: int | None = 100,
         create_graph: bool | None = True,
         create_svg: bool | None = True,
@@ -1260,12 +1260,9 @@ class Prov4MLLogger(Logger):
 
     def _normalize_context(self, context):
         """
-        normalize itwinai string contexts to yProv4ML Context.
+        Normalize itwinai string contexts to yProv4ML Context.
         """
-        if self.context is None or context is None:
-            return context
-
-        if isinstance(context, str):
+        if self.context is not None and isinstance(context, str):
             try:
                 return self.context[context.upper()]
             except KeyError:
