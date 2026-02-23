@@ -125,9 +125,9 @@ RUN uv pip install --upgrade pip && \
     "traitlets"
 
 # Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
-RUN uv pip install rucio-jupyterlab 
+RUN uv pip install rucio-jupyterlab
 
-# Install itwinai and prov4ml
+# Install itwinai
 WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
@@ -140,13 +140,13 @@ RUN uv pip install --no-cache-dir --upgrade pip \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
+    # "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     pytest \
     pytest-xdist \
     psutil
 
 RUN itwinai sanity-check --torch \
-    --optional-deps prov4ml \
+    --optional-deps yprov4ml \
     --optional-deps ray
 
 # Add tests

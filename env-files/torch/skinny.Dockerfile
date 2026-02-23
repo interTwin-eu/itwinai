@@ -48,7 +48,7 @@ RUN uv venv \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
+    # "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     pytest \
     pytest-xdist \
     psutil
@@ -59,7 +59,7 @@ ENV VIRTUAL_ENV=/app/.venv \
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
-    --optional-deps prov4ml \
+    --optional-deps yprov4ml \
     --optional-deps ray
 
 COPY env-files/torch/skinny.Dockerfile Dockerfile

@@ -1,20 +1,3 @@
-.. note:: 
-    If you want to use the Prov4ML logger, you need to install it explicitly since it is only
-    available on GitHub:
-
-    For systems with Nvidia GPUs:
-
-    .. code-block:: bash
-
-       uv pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2"
-
-    For macOS:
-
-    .. code-block:: bash
-
-       uv pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@v0.0.2"
-
-
 Installing Horovod and Microsoft DeepSpeed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you also want to install Horovod and Microsoft DeepSpeed for distributed ML with

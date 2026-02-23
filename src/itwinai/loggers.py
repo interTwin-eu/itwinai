@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
 # -------------------------------------------------------------------------------------
 
 """
@@ -1183,7 +1184,7 @@ class Prov4MLLogger(Logger):
         self,
         prov_user_namespace: str = "www.example.org",
         experiment_name: str = "experiment_name",
-        provenance_save_dir: Path | str = "mllogs/prov_logs",
+        provenance_save_dir: str = "mllogs/prov_logs",
         save_after_n_logs: int | None = 100,
         create_graph: bool | None = True,
         create_svg: bool | None = True,
@@ -1197,16 +1198,18 @@ class Prov4MLLogger(Logger):
         )
         self.prov_user_namespace = prov_user_namespace
         self.experiment_name = experiment_name
-        self.provenance_save_dir = provenance_save_dir
+        self.provenance_save_dir = str(provenance_save_dir)
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
         self.create_svg = create_svg
 
         import mlflow
-        import prov4ml
+        import yprov4ml
 
-        self.prov4ml = prov4ml
+        self.yprov4ml = yprov4ml
         self.mlflow = mlflow
+        self.context = getattr(self.yprov4ml, "Context", None)
+        self.param_context = "training"
 
     @check_not_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> None:
@@ -1224,9 +1227,9 @@ class Prov4MLLogger(Logger):
 
         py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
-        self.prov4ml.start_run(
-            prov_user_namespace=self.prov_user_namespace,
+        self.yprov4ml.start_run(
             experiment_name=self.experiment_name,
+            prov_user_namespace=self.prov_user_namespace,
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
             # This class will control which workers can log
@@ -1241,7 +1244,7 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        self.prov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
+        self.yprov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
         self.is_initialized = False
 
     @check_initialized
@@ -1249,9 +1252,23 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        # Save hyperparams
+        ctx = self._normalize_context(self.param_context)
+
+        # Save hyperparameters
         for param_name, val in params.items():
-            self.prov4ml.log_param(key=param_name, value=val)
+            self.yprov4ml.log_param(key=param_name, value=val, context=ctx)
+
+    def _normalize_context(self, context):
+        """
+        Normalize itwinai string contexts to yProv4ML Context.
+        """
+        if self.context is not None and isinstance(context, str):
+            try:
+                return self.context[context.upper()]
+            except KeyError:
+                return None
+
+        return context
 
     @check_initialized
     def log(
@@ -1282,50 +1299,60 @@ class Prov4MLLogger(Logger):
         if not self.should_log(batch_idx=batch_idx):
             return
 
+        ctx = self._normalize_context(context)
+
         if kind == "metric":
-            self.prov4ml.log_metric(key=identifier, value=item, context=context, step=step)
+            self.yprov4ml.log_metric(key=identifier, value=item, context=ctx, step=step)
         elif kind == "flops_pb":
             model, batch = item
-            self.prov4ml.log_flops_per_batch(
-                label=identifier, model=model, batch=batch, context=context, step=step
+            self.yprov4ml.log_flops_per_batch(
+                label=identifier,
+                model=model,
+                batch=batch,
+                context=ctx,
+                step=step
             )
         elif kind == "flops_pe":
             model, dataset = item
-            self.prov4ml.log_flops_per_epoch(
+            self.yprov4ml.log_flops_per_epoch(
                 label=identifier,
                 model=model,
                 dataset=dataset,
-                context=context,
+                context=ctx,
                 step=step,
             )
         elif kind == "system":
-            self.prov4ml.log_system_metrics(context=context, step=step)
+            self.yprov4ml.log_system_metrics(context=ctx, step=step)
         elif kind == "carbon":
-            self.prov4ml.log_carbon_metrics(context=context, step=step)
+            self.yprov4ml.log_carbon_metrics(context=ctx, step=step)
         elif kind == "execution_time":
-            self.prov4ml.log_current_execution_time(
-                label=identifier, context=context, step=step
+            self.yprov4ml.log_current_execution_time(
+                label=identifier, context=ctx, step=step
             )
         elif kind == "model":
-            self.prov4ml.save_model_version(
-                model=item, model_name=identifier, context=context, step=step
+            self.yprov4ml.save_model_version(
+                model_name=identifier, model=item, context=ctx, step=step
             )
         elif kind == "best_model":
-            self.prov4ml.log_model(
-                model=item,
+            self.yprov4ml.log_model(
                 model_name=identifier,
+                model=item,
                 log_model_info=True,
-                log_as_artifact=True,
+                log_model_layers=False
             )
         elif kind == "torch":
             from torch.utils.data import DataLoader
 
             if isinstance(item, DataLoader):
-                self.prov4ml.log_dataset(dataset=item, label=identifier)
+                self.yprov4ml.log_dataset(dataset_label=identifier, dataset=item)
             else:
-                self.prov4ml.log_param(key=identifier, value=item)
+                self.yprov4ml.log_param(
+                    key=identifier,
+                    value=item,
+                    context=self._normalize_context(self.param_context)
+                )
         elif kind == "prov_documents":
-            prov_docs = self.prov4ml.log_provenance_documents(
+            prov_docs = self.yprov4ml.log_provenance_documents(
                 create_graph=True, create_svg=True
             )
 
