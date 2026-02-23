@@ -202,16 +202,8 @@ def test_log_prov_documents(logger_instance, mlflow_run):
         log_prov_documents.return_value = ["doc1", "doc2"]
 
         with patch("mlflow.log_artifact") as mlflow_log_artifact:
-            logger_instance.log(
-                item=None,
-                identifier=None,
-                kind="prov_documents",
-                step=1
-            )
+            logger_instance.log(item=None, identifier=None, kind="prov_documents", step=1)
 
-            log_prov_documents.assert_called_once_with(
-                create_graph=True,
-                create_svg=True
-            )
+            log_prov_documents.assert_called_once_with(create_graph=True, create_svg=True)
             mlflow_log_artifact.assert_any_call("doc1")
             mlflow_log_artifact.assert_any_call("doc2")

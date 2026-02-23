@@ -695,8 +695,7 @@ class MLFlowLogger(Logger):
         elif kind == "dict":
             self.mlflow.log_dict(dictionary=item, artifact_file=identifier)
         elif kind == "figure":
-            if not identifier.endswith(".png"):
-                identifier = f"{identifier}.png"
+            identifier = identifier if identifier.endswith(".png") else identifier + ".png"
             self.mlflow.log_figure(
                 artifact_file=identifier,
                 figure=item,
