@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from itwinai.torch.model_hub.manifest import write_manifest, write_metadata
 from itwinai.torch.model_hub.backends import get_backend
+from itwinai.torch.model_hub.manifest import write_manifest, write_metadata
 
 
 class ModelHubFeature:
