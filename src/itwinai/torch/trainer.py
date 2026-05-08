@@ -40,6 +40,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchmetrics import Metric
 from tqdm import tqdm
 
+from itwinai.torch.model_hub.feature import ModelHubFeature
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
@@ -300,6 +301,8 @@ class TorchTrainer(Trainer, LogMixin):
             run_name = generate_random_name()
 
         self.run_name = run_name
+
+        self._model_hub = ModelHubFeature(getattr(self.config, "model_hub", {}))
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -618,6 +621,10 @@ class TorchTrainer(Trainer, LogMixin):
         config_path = ckpt_dir / "config.yaml"
         with config_path.open("w") as f:
             yaml.safe_dump(self.config.model_dump(), f)
+
+        # Upload model to Model Hub if enabled
+        if self._model_hub.enabled:
+            self._model_hub.on_checkpoint_saved(self, ckpt_dir)
 
         # Log each file with an appropriate identifier
         self.log(str(state_path), f"{name}_state", kind="artifact")
