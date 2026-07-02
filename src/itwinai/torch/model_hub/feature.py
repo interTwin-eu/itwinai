@@ -17,7 +17,6 @@ class ModelHubFeature:
 
         # prepare directory
         write_manifest(ckpt_dir, self.config)
-        write_metadata(ckpt_dir, trainer.config)
 
         # upload type
         mode = self.config.get("mode", "deferred")
