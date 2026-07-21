@@ -2,6 +2,7 @@ from pathlib import Path
 
 from itwinai.torch.model_hub.backends import get_backend
 from itwinai.torch.model_hub.manifest import write_manifest
+from itwinai.torch.model_hub.utils import has_internet_connection
 
 
 class ModelHubFeature:
@@ -25,19 +26,10 @@ class ModelHubFeature:
             self.backend.upload(ckpt_dir)
 
         elif mode == "auto":
-            if self._has_internet():
+            if has_internet_connection():
                 self.backend.upload(ckpt_dir)
             else:
                 print(f"Model Hub config ready in: {ckpt_dir}")
 
         elif mode == "deferred":
             print(f"Model Hub can be run in: {ckpt_dir}")
-
-    def _has_internet(self, timeout=3.0):
-        import socket
-
-        try:
-            socket.create_connection(("8.8.8.8", 53), timeout=timeout)
-            return True
-        except OSError:
-            return False
