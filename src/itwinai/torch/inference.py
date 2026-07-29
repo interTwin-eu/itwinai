@@ -21,6 +21,7 @@ from ..loggers import Logger
 from ..serialization import ModelLoader
 from .config import TrainingConfiguration
 from .distributed import TorchDistributedStrategy
+from .model_hub.download import discover_weights_file, download_file
 from .model_hub.utils import has_internet_connection
 from .trainer import TorchTrainer
 
@@ -31,9 +32,9 @@ class ModelHubModelLoader(ModelLoader):
 
     Args:
         model_id (str): Model Hub artifact ID.
-        file_path (str): Name of the file to download within the model's
-            artifact.
-        model_class (nn.Module, optional): required if the checkpoint is
+        file_path (str | None): Name of the file to download within the model's
+            artifact. If None, will attempt to auto-discover the weights file.
+        model_class (nn.Module | None): required if the checkpoint is
             a state dict rather than a full pickled model.
         base_url (str): Model Hub artifacts base URL.
     """
@@ -41,7 +42,7 @@ class ModelHubModelLoader(ModelLoader):
     def __init__(
         self,
         model_id: str,
-        file_path: str,
+        file_path: str | None = None,
         model_class: nn.Module | None = None,
         base_url: str = "https://hypha.aicell.io/ri-scale/artifacts",
     ):
@@ -57,33 +58,21 @@ class ModelHubModelLoader(ModelLoader):
                 f"model '{self.model_id}'."
             )
 
-        import requests
-
-        url = f"{self.base_url}/{self.model_id}/files/{self.file_path}"
-        response = requests.get(url, timeout=30)
-        if response.status_code != 200:
-            raise ValueError(
-                f"Could not download '{self.file_path}' for model "
-                f"'{self.model_id}' from the Model Hub "
-                f"(status {response.status_code})."
-            )
-
+        file_path = self.file_path or discover_weights_file(self.base_url, self.model_id)
         dst_dir = Path("tmp") / "modelhub_downloads" / self.model_id
-        dst_dir.mkdir(parents=True, exist_ok=True)
-        ckpt_path = dst_dir / self.file_path
-        ckpt_path.write_bytes(response.content)
+        ckpt_path = download_file(self.base_url, self.model_id, file_path, dst_dir)
 
         checkpoint = torch.load(ckpt_path, weights_only=False)
+        if self.model_class is None:
+            raise ValueError(
+                "model_class is required: Model Hub checkpoints store weights "
+                "as a raw state_dict, not a pickled model object."
+            )
+        model = self.model_class()
         if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-            if self.model_class is None:
-                raise ValueError(
-                    "model_class required to instantiate model when checkpoint is dict."
-                )
-            model = self.model_class()
             model.load_state_dict(checkpoint["model_state_dict"], strict=False)
         else:
-            model = checkpoint
-
+            model.load_state_dict(checkpoint, strict=False)
         return model.eval()
 
 
