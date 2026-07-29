@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
-
 
 DEFAULT_MANIFEST = {
     "format_version": "0.1.0",

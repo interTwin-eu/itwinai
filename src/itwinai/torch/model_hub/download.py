@@ -1,5 +1,6 @@
-import requests
 from pathlib import Path
+
+import requests
 
 
 def list_files(base_url: str, model_id: str, subpath: str = "") -> list[dict]:
