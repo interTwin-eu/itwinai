@@ -324,6 +324,8 @@ class TorchPredictor(TorchTrainer, Predictor):
         threshold in case of multi-label classifier).
         """
 
+        return batch
+
 
 class MulticlassTorchPredictor(TorchPredictor):
     """Applies a pre-trained torch model to unseen data for multiclass classification."""

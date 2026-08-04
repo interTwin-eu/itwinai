@@ -1,0 +1,65 @@
+# --------------------------------------------------------------------------------------
+# Part of the RI-SCALE Project: https://www.riscale.eu/
+# --------------------------------------------------------------------------------------
+
+train_samples: 64
+val_samples: 16
+inference_samples: 16
+
+model_hub:
+  enabled: true
+  backend: ai-model-hub
+  mode: auto # or "online" / "deferred" -- see Model Hub docs page
+  manifest:
+    id: checkpoint-itwinai-tutorial
+    name: Sanity Check itwinai Tutorial
+    description: >
+      Small 3-layer CNN trained on synthetic noise to demonstrate itwinai integration with
+      RI-SCALE Model Hub push/pull feature.
+    authors:
+      - name: Rakesh Sarma
+        affiliation: FZJ
+        github_user: r-sarma
+    published: true
+
+# Run with: itwinai exec-pipeline +pipe_key=training_pipeline
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: data.SyntheticCheckpointDatasetSplitter
+      train_samples: ${train_samples}
+      val_samples: ${val_samples}
+    - _target_: itwinai.torch.trainer.TorchTrainer
+      model:
+        _target_: synthetic_data.SanityCheckModel
+      epochs: 2
+      strategy: ddp
+      checkpoint_every: 1
+      checkpoints_location: checkpoints
+      config:
+        optimizer: sgd
+        loss: mse
+        optim_lr: 0.01
+        # TorchTrainer reads this via `getattr(self.config, "model_hub", {})`,
+        # so it has to declared on `config`.
+        model_hub: ${model_hub}
+
+# Run with: itwinai exec-pipeline +pipe_key=inference_pipeline
+inference_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: data.SyntheticInferenceDatasetGenerator
+      inference_samples: ${inference_samples}
+    - _target_: itwinai.torch.inference.TorchPredictor
+      config:
+        model_hub: ${model_hub}
+      strategy: ddp
+      model:
+        _target_: itwinai.torch.inference.ModelHubModelLoader
+        model_id: ${model_hub.manifest.id}
+        # `model_class` needs to end up as the *class* itself, not an instance --
+        # `synthetic_data.sanity_check_model_class` is a plain function that returns
+        # `SanityCheckModel` uninstantiated, so instantiating this `_target_` gives
+        # `ModelHubModelLoader.model_class = SanityCheckModel` (the class object).
+        model_class:
+          _target_: synthetic_data.sanity_check_model_class

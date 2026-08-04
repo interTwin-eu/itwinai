@@ -32,6 +32,7 @@
    how-it-works/workflows/explain_workflows
    how-it-works/hpo/explain-hpo
    how-it-works/scalability-report/scalability_report
+   how-it-works/model-hub/explain_model_hub
 
 .. toctree::
    :maxdepth: 2

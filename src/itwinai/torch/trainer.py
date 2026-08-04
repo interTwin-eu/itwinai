@@ -8,6 +8,7 @@
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
 # --------------------------------------------------------------------------------------
 
 
@@ -1275,6 +1276,10 @@ class TorchTrainer(Trainer, LogMixin):
                     kind="metric",
                     step=self.current_epoch,
                 )
+        if self.strategy.is_main_worker:
+            best_ckpt_dir = Path(self.checkpoints_location) / "best_model"
+            if best_ckpt_dir.exists():
+                self._model_hub.on_training_end(self, best_ckpt_dir)
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.

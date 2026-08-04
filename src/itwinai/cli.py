@@ -551,6 +551,7 @@ def _load_slurm_builder_config(
 
     return validated_config, (root_config if expect_nested else None)
 
+
 @app.command()
 def run(
     config: Annotated[
@@ -976,7 +977,7 @@ def upload_model_to_hub(
         str | None,
         typer.Option(
             "--env-file",
-            help="Path to .env file containing MODEL_HUB_URL and MODEL_HUB_API_TOKEN.",
+            help="Path to .env file containing HYPHA_SERVER_URL and HYPHA_TOKEN.",
         ),
     ] = None,
     upload_script: Annotated[
@@ -1006,7 +1007,7 @@ def upload_model_to_hub(
         import socket
 
         try:
-            socket.create_connection(("8.8.8.8", 53), timeout=timeout)
+            socket.create_connection(("1.1.1.1", 443), timeout=timeout)
             return True
         except OSError:
             return False
@@ -1014,21 +1015,16 @@ def upload_model_to_hub(
     model_path = Path(model_dir).resolve()
 
     # Validate if model directory exists and is a directory
-    if not model_path.exists():
-        cli_logger.error(f"Model directory '{model_path}' does not exist!")
-        raise typer.Exit(code=1)
-
-    if not model_path.is_dir():
-        cli_logger.error(f"'{model_path}' is not a directory!")
+    if not model_path.exists() or not model_path.is_dir():
+        cli_logger.error(
+            f"Model directory '{model_path}' does not exist or is not a directory."
+        )
         raise typer.Exit(code=1)
 
     # Check if the file manifest.yaml exists
     manifest_file = model_path / "manifest.yaml"
     if not manifest_file.exists():
-        cli_logger.error(
-            f"No manifest.yaml found in '{model_path}'. "
-            "The model directory must contain a manifest.yaml file with the model id."
-        )
+        cli_logger.error(f"No manifest.yaml found in '{model_path}'. ")
         raise typer.Exit(code=1)
 
     # Load environment variables from .env file if specified and if file exists
@@ -1121,16 +1117,30 @@ def upload_model_to_hub(
     cli_logger.info(f"Uploading model from '{model_path}' to {final_hub_url}")
 
     try:
-        # Call the upload script as subprocess
-        # The original usage is: python upload_model.py model_example1
-        result = subprocess.run(
-            [sys.executable, str(upload_script_path), str(model_path)],
-            env=env_vars,
-            capture_output=True,
-            text=True,
-            cwd=str(upload_script_path.parent),  # Run from script directory
-            check=False,
-        )
+        # Build the "root/<ckpt_dir_name>" layout that discover_weights_file expects,
+        # via a symlink
+        scratch_dir = Path(tempfile.mkdtemp())
+        root_dir = scratch_dir / "root"
+        root_dir.mkdir(parents=True, exist_ok=True)
+        symlink_path = root_dir / model_path.name
+        if not symlink_path.exists():
+            symlink_path.symlink_to(model_path, target_is_directory=True)
+
+        relative_upload_arg = f"root/{model_path.name}"
+
+        try:
+            # Call the upload script as subprocess
+            # The original usage is: python upload_model.py model_example1
+            result = subprocess.run(
+                [sys.executable, str(upload_script_path), relative_upload_arg],
+                env=env_vars,
+                capture_output=True,
+                text=True,
+                cwd=str(scratch_dir),
+                check=False,
+            )
+        finally:
+            shutil.rmtree(scratch_dir, ignore_errors=True)
 
         # Print stdout (even if there's an error, this may be useful for debugging)
         if result.stdout:
@@ -1171,11 +1181,12 @@ def _load_env_file(env_path: Path, env_dict: dict):
                 key = key.strip()
                 value = value.strip()
                 # Remove quotes if present
-                if (
-                    (value.startswith('"') and value.endswith('"')) or
-                    (value.startswith("'") and value.endswith("'"))
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
                 ):
                     value = value[1:-1]
+
+                env_dict[key] = value
 
 
 if __name__ == "__main__":
