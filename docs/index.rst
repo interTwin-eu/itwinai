@@ -146,6 +146,7 @@ Quick Start
 - :ref:`Hyper-parameter Optimization <hpo-tutorials>`
 - :ref:`ML Workflows <ml-workflows-tutorials>`
 - :ref:`Code Profiling and Optimization <profiling-tutorials>`
+- :ref:`Model Hub <model-hub-tutorials>`
 
 📚 Use Cases & 🧩 Plugins
 ==========================

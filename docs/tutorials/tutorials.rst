@@ -48,16 +48,16 @@ Here you can find a collection of tutorials for various complexity ML workflows.
 
 .. toctree::
    :maxdepth: 1
-   
+
    workflows/01-pipeline-introduction/tutorial_0_basic_workflow
    workflows/02-pipeline-configuration/tutorial_1_intermediate_workflow
    workflows/03-dag-workflows/tutorial_2_advanced_workflow
    workflows/04_itwinai_argparser
- 
+
 
 .. _hpo-tutorials:
 
-Hyperparameter Optimization 
+Hyperparameter Optimization
 ===========================
 
 This tutorial provides an overview of Hyperparameter Optimization (HPO) workflows.
@@ -81,3 +81,16 @@ Here you can find our tutorials on how to do profiling with **itwinai**:
    profiling/profiling-overview
    profiling/py-spy-profiling
    profiling/py-spy-lattice-qcd-example
+
+
+.. _model-hub-tutorials:
+
+Model Hub
+=========
+
+Here you can find our tutorial on pushing and pulling models with the RI-SCALE Model Hub.
+
+.. toctree::
+   :maxdepth: 1
+
+   model-hub/model_hub_tutorial

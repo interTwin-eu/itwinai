@@ -64,7 +64,7 @@ the inference dataset, fed into `TorchPredictor.execute(inference_dataset)`. `To
 takes `model: nn.Module | ModelLoader` directly, so `model` here is a
 `ModelHubModelLoader` `_target_` rather than an already-built model --
 `TorchPredictor.execute` detects this (`isinstance(self.model, ModelLoader)`) and calls it
-to actually fetch and build the model at run time.
+to actually fetch and build the model at runtime.
 
 `ModelHubModelLoader` pulls the checkpoint by `model_id`, auto-discovering
 `model.pt` under `root/<checkpoint_dir>/model.pt` (no need to know the exact file path in
