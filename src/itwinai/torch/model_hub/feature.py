@@ -15,12 +15,16 @@ class ModelHubFeature:
         self.backend = get_backend(backend_name, self.config)
 
     def on_checkpoint_saved(self, trainer, ckpt_dir):
+        if not self.enabled:
+            return
         ckpt_dir = Path(ckpt_dir)
         if ckpt_dir.name != self.final_checkpoint_name:
             return
         write_manifest(ckpt_dir, self.config)
 
     def on_training_end(self, trainer, ckpt_dir):
+        if not self.enabled:
+            return
         ckpt_dir = Path(ckpt_dir)
         if ckpt_dir.name != self.final_checkpoint_name:
             return

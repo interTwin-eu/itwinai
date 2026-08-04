@@ -623,7 +623,7 @@ class TorchTrainer(Trainer, LogMixin):
         with config_path.open("w") as f:
             yaml.safe_dump(self.config.model_dump(), f)
 
-        # Upload model to Model Hub if enabled
+        # Save model and manifest locally if enabled
         if self._model_hub.enabled:
             self._model_hub.on_checkpoint_saved(self, ckpt_dir)
 
@@ -1276,7 +1276,7 @@ class TorchTrainer(Trainer, LogMixin):
                     kind="metric",
                     step=self.current_epoch,
                 )
-        if self.strategy.is_main_worker:
+        if self.strategy.is_main_worker and self._model_hub.enabled:
             best_ckpt_dir = Path(self.checkpoints_location) / "best_model"
             if best_ckpt_dir.exists():
                 self._model_hub.on_training_end(self, best_ckpt_dir)
