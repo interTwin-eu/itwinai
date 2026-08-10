@@ -18,6 +18,7 @@
    getting-started/complete-workflow-example
    getting-started/slurm
    getting-started/containers
+   getting-started/rucio
    getting-started/plugins
    getting-started/plugins-list
    getting-started/glossary
@@ -128,6 +129,7 @@ Quick Start
 - :doc:`Developer Installation <installation/developer_installation>`
 - :doc:`Submitting jobs to SLURM on HPC <getting-started/slurm>`
 - :doc:`Using itwinai Container Images <getting-started/containers>`
+- :doc:`Using itwinai with RUCIO <getting-started/rucio>`
 
 🛠️ Core Guides
 ===============
@@ -210,7 +212,7 @@ If you use **itwinai** in your research, please cite:
 
    Bunino et al., (2026). itwinai: A Python Toolkit for Scalable Scientific
    Machine Learning on HPC Systems. Journal of Open Source Software, 11(117),
-   9409. https://doi.org/10.21105/joss.09409
+   1.    https://doi.org/10.21105/joss.09409
 
 BibTeX:
 
