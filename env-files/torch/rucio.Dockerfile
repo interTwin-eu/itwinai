@@ -43,4 +43,4 @@ COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 RUN pip install --no-cache-dir .
 # rucio.cfg file should be present 
-COPY --chown=${NB_UID} rucio.cfg rucio.cfg
+COPY --chown=${NB_UID} env-files/torch/rucio.cfg rucio.cfg
