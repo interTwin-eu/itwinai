@@ -17,7 +17,7 @@ like a config error. Check the import first, in isolation.
 
 ## Hydra cannot find the config
 
-`--config-name` is the file name **without** `.yaml`. `--config-path` is its directory. Both are
+`--config-name` is the filename **without** `.yaml`. `--config-path` is its directory. Both are
 relative to the launch directory, which under SLURM is not necessarily where the file lives -
 this is why `slurm_config` has its own `config_path` and `config_name` fields.
 
