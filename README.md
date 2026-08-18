@@ -34,6 +34,25 @@ at the following documents:
 - [Working with containers](/docs/working-with-containers.md)
 - [Testing with pytest](/docs/testing-with-pytest.md)
 
+## Using itwinai with Claude Code
+
+If you use [Claude Code](https://claude.com/claude-code), `itwinai` ships a skill that guides the integration
+of your existing training code into an `itwinai` plugin, covering distributed training, hyper-parameter
+optimization, logging, profiling and scalability reports.
+
+This repository doubles as a Claude Code plugin marketplace, so the skill installs once and is then available
+in any directory, including the plugin repository you are creating:
+
+```text
+/plugin marketplace add interTwin-eu/itwinai
+/plugin install itwinai
+```
+
+Then start an integration with `/itwinai:integrating-a-use-case`.
+
+For details see [Integrating a Use Case with Claude Code](/docs/getting-started/claude-skill.rst) and the
+[worked tutorial](/docs/tutorials/claude-skill/integrate-a-new-use-case.rst).
+
 ## How to contribute
 
 Want to help improve **itwinai**? Here are a few good ways to get involved:
