@@ -147,3 +147,44 @@ Tests are organized by component type:
 4. Use `ruff` for code formatting and linting
 5. Test with real use cases in `use-cases/` directory
 6. For HPC development, test on JSC systems using `make test-jsc`
+
+## Claude Code Skill (`skills/`)
+
+This repository doubles as a Claude Code plugin marketplace. `.claude-plugin/` declares the
+plugin and `skills/integrating-a-use-case/` contains a skill that walks scientists through
+turning their training code into an itwinai plugin, covering distributed training, logging,
+HPO, profiling and scalability reports.
+
+**IMPORTANT — keep the skill in sync with the code.** The skill is documentation that users
+execute, and it is installed on their machines at a pinned version, so drift is invisible to
+them until it produces a broken config. Whenever you change any of the following, update
+`skills/integrating-a-use-case/` in the *same* pull request:
+
+- `itwinai/torch/trainer.py` — `TorchTrainer.__init__` arguments, overridable methods, or
+  strategy resolution → `SKILL.md`, `references/porting-training-code.md`,
+  `references/distributed.md`
+- `itwinai/torch/config.py` — `TrainingConfiguration` fields, allowed losses or optimizers →
+  `references/porting-training-code.md`
+- `itwinai/components.py` — component base classes or their `execute()` signatures →
+  `references/porting-training-code.md`
+- `itwinai/loggers.py` — logger classes or their arguments → `references/logging.md`
+- `itwinai/slurm/configuration.py` — `SlurmScriptConfiguration` or `MLSlurmBuilderConfig`
+  fields → `references/slurm.md`
+- `itwinai/torch/tuning.py` or the Ray integration → `references/hpo.md`
+- `itwinai/scalability_report/` or the profiling flags →
+  `references/profiling-and-scalability.md`
+- `itwinai/cli.py` — command names, options, or OmegaConf resolvers → whichever reference
+  mentions them, and `docs/getting-started/claude-skill.rst`
+- `itwinai/pipeline.py` — pipeline semantics → `references/pipeline-config.md`
+
+Rules when editing the skill:
+
+1. **Bump `version` in both `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`**
+   together with the package version in `pyproject.toml`. The skill compares its own version
+   against the installed itwinai to warn users about skew, so a stale version string silently
+   disables that check.
+2. **Update the version stated in `SKILL.md`** (the "This skill targets itwinai X.Y.Z" line).
+3. **Do not paste field lists into reference files.** References name the owning class and
+   instruct reading it from the installed itwinai, precisely so that most changes here do not
+   require a skill edit. Preserve that property — add reasoning, not copies of the source.
+4. If a change breaks a step of the workflow, fix `references/troubleshooting.md` too.
