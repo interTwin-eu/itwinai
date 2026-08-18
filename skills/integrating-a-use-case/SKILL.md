@@ -30,7 +30,7 @@ Do not restart from Phase 0. Jump straight to what you need.
 1. **Gates are hard.** Each phase ends with a gate. If it fails, go to
    `references/troubleshooting.md` and fix it. Never advance past a failing gate, and never
    report a phase complete without running its gate command and seeing it pass.
-2. **Read the source, don't trust this skill for field values.** Every reference file names the
+2. **Read the source, don't trust this skill for field values.** Every reference names the
    class that owns a set of fields. Read that class from the *installed* itwinai before
    generating config. Users are often on a skill version older than their itwinai.
 3. **Load references lazily.** Read a reference file when you reach the step that needs it, not
@@ -74,7 +74,7 @@ each of these lives, or "none":
   `DataGetter` supplies the data and the stock `itwinai.torch.trainer.TorchTrainer` runs it.
   This is the default. Choose it unless something below forces the other branch.
 - **Custom trainer** - a `TorchTrainer` subclass. Required when the loss is not in
-  `TrainingConfiguration`'s allowed set, the optimizer or scheduler is built in a non-standard
+  `TrainingConfiguration`'s allowed set, the optimizer or scheduler is constructed in a non-standard
   way, the training step is unusual (multiple optimizers, custom backward, physics residuals,
   rollouts), or batches need per-batch transformation.
 
