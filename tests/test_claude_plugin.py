@@ -25,6 +25,15 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = REPO_ROOT / ".claude-plugin"
 SKILL_DIR = REPO_ROOT / "skills" / "integrating-a-use-case"
 
+# The test container built by env-files/torch/skinny.Dockerfile copies only pyproject.toml,
+# src, tests and use-cases, and .dockerignore strips "**/*.md" on top of that, so neither the
+# manifests nor the skill exist there. These checks are meaningful only against a full
+# checkout: run them locally, or with `make test-local`.
+pytestmark = pytest.mark.skipif(
+    not (PLUGIN_DIR.is_dir() and SKILL_DIR.is_dir()),
+    reason="Claude plugin files are not present (running against a partial source tree)",
+)
+
 
 def _package_version() -> str:
     match = re.search(r'^version = "(.+?)"', (REPO_ROOT / "pyproject.toml").read_text(), re.M)
