@@ -64,7 +64,7 @@ relative paths. Read the registrations in `itwinai/cli.py` if you need the curre
 itwinai exec-pipeline --config-name config +pipe_key=training_pipeline
 ```
 
-- `--config-name` is the file name without `.yaml`; `--config-path` is its directory.
+- `--config-name` is the filename without `.yaml`; `--config-path` is its directory.
 - `+pipe_key=` selects which top-level pipeline to run. The `+` is required because the key is
   being added, not overridden.
 - Any field can be overridden Hydra-style: `epochs=1 batch_size=8`.
