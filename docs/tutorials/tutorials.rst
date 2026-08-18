@@ -68,6 +68,20 @@ This tutorial provides an overview of Hyperparameter Optimization (HPO) workflow
    hpo-workflows/hpo-torchtrainer-integration
 
 
+.. _claude-skill-tutorials:
+
+Integrating a Use Case with Claude Code
+=======================================
+
+An end-to-end walkthrough of turning a standalone training script into an itwinai plugin, using
+the Claude Code skill shipped with this repository.
+
+.. toctree::
+   :maxdepth: 1
+
+   claude-skill/integrate-a-new-use-case
+
+
 .. _profiling-tutorials:
 
 Code Profiling and Optimization

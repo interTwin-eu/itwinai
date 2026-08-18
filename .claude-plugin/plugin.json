@@ -1,0 +1,20 @@
+{
+  "name": "itwinai",
+  "description": "Integrate scientific training code into itwinai: distributed training, HPO, logging, profiling and scalability reports",
+  "version": "0.4.2",
+  "author": {
+    "name": "interTwin - CERN",
+    "email": "matteo.bunino@cern.ch"
+  },
+  "homepage": "https://itwinai.readthedocs.io",
+  "repository": "https://github.com/interTwin-eu/itwinai",
+  "license": "MIT",
+  "keywords": [
+    "itwinai",
+    "hpc",
+    "distributed-training",
+    "hpo",
+    "digital-twins",
+    "scientific-machine-learning"
+  ]
+}
