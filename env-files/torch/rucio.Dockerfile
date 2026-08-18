@@ -42,5 +42,5 @@ RUN rm -rf tests src pyproject.toml Dockerfile
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 RUN pip install --no-cache-dir .
-# rucio.cfg file should be present 
+# rucio.cfg file should be present
 COPY --chown=${NB_UID} env-files/torch/rucio.cfg rucio.cfg
