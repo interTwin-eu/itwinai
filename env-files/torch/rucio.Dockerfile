@@ -2,7 +2,10 @@ FROM ghcr.io/intertwin-eu/itwinai:jlab-slim-latest
 
 USER root
 
-# Setup RUCIO dependencies 
+# Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Setup RUCIO dependencies
 RUN ARCH=$(uname -m) && \
     case "${ARCH}" in \
     x86_64)  MAMBA_ARCH=64 ;; \
