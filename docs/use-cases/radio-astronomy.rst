@@ -35,7 +35,7 @@ Logging with MLflow
 -----------------------------------------------------------------------------------------------
 By default, the `config.yaml` ensures that the MLflow logging is enabled during the training.
 During or after the run, you can launch an MLflow server by executing
-`mlflow server --backend-store-uri mllogs/mlflow` and connecting to `http://127.0.0.1:5000/` 
+`itwinai mlflow-server --path mllogs/mlflow` and connecting to `http://127.0.0.1:5000/` 
 in your browser.
 
 Test suite

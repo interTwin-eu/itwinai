@@ -68,10 +68,10 @@ itwinai exec-pipeline +pipe_key=training_pipeline
 ```
 
 ```bash
-mlflow ui --backend-store-uri mllogs/mlflow
+itwinai mlflow-ui --path mllogs/mlflow
 
 # In background 
-mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
+itwinai mlflow-ui --path mllogs/mlflow > /dev/null 2>&1 &
 ```
 
 ## Training using SLURM

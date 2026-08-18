@@ -41,7 +41,7 @@ itwinai exec-pipeline --config-name config.yaml
 View training logs on MLFLow server (if activated from the configuration):
 
 ```bash
-mlflow ui --backend-store-uri mllogs/mlflow/
+itwinai mlflow-ui --path mllogs/mlflow/
 ```
 
 ### Hyper-parameter optimization
