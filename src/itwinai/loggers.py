@@ -1173,11 +1173,11 @@ class Prov4MLLogger(Logger):
         "flops_pb",
         "flops_pe",
         "system",
-        "carbon",
         "execution_time",
         "model",
         "best_model",
         "torch",
+        "prov_documents",
     )
 
     def __init__(
@@ -1205,11 +1205,11 @@ class Prov4MLLogger(Logger):
 
         import mlflow
         import yprov4ml
+        from yprov4ml.functs import log_provenance_documents
 
         self.yprov4ml = yprov4ml
+        self.log_provenance_documents = log_provenance_documents
         self.mlflow = mlflow
-        self.context = getattr(self.yprov4ml, "Context", None)
-        self.param_context = "training"
 
     @check_not_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> None:
@@ -1252,23 +1252,13 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        ctx = self._normalize_context(self.param_context)
-
         # Save hyperparameters
         for param_name, val in params.items():
-            self.yprov4ml.log_param(key=param_name, value=val, context=ctx)
-
-    def _normalize_context(self, context):
-        """
-        Normalize itwinai string contexts to yProv4ML Context.
-        """
-        if self.context is not None and isinstance(context, str):
-            try:
-                return self.context[context.upper()]
-            except KeyError:
-                return None
-
-        return context
+            self.yprov4ml.log_param(
+                key=param_name,
+                value=val,
+                context="training",
+            )
 
     @check_initialized
     def log(
@@ -1293,24 +1283,20 @@ class Prov4MLLogger(Logger):
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
+            context (Optional[str], optional): yProv4ML context. Defaults
+                to "training".
             kwargs: keyword arguments to pass to the logger.
         """
 
         if not self.should_log(batch_idx=batch_idx):
             return
 
-        ctx = self._normalize_context(context)
-
         if kind == "metric":
-            self.yprov4ml.log_metric(key=identifier, value=item, context=ctx, step=step)
+            self.yprov4ml.log_metric(key=identifier, value=item, context=context, step=step)
         elif kind == "flops_pb":
             model, batch = item
             self.yprov4ml.log_flops_per_batch(
-                label=identifier,
-                model=model,
-                batch=batch,
-                context=ctx,
-                step=step
+                label=identifier, model=model, batch=batch, context=context, step=step
             )
         elif kind == "flops_pe":
             model, dataset = item
@@ -1318,27 +1304,22 @@ class Prov4MLLogger(Logger):
                 label=identifier,
                 model=model,
                 dataset=dataset,
-                context=ctx,
+                context=context,
                 step=step,
             )
         elif kind == "system":
-            self.yprov4ml.log_system_metrics(context=ctx, step=step)
-        elif kind == "carbon":
-            self.yprov4ml.log_carbon_metrics(context=ctx, step=step)
+            self.yprov4ml.log_system_metrics(context=context, step=step)
         elif kind == "execution_time":
             self.yprov4ml.log_current_execution_time(
-                label=identifier, context=ctx, step=step
+                label=identifier, context=context, step=step
             )
         elif kind == "model":
             self.yprov4ml.save_model_version(
-                model_name=identifier, model=item, context=ctx, step=step
+                model_name=identifier, model=item, context=context, step=step
             )
         elif kind == "best_model":
             self.yprov4ml.log_model(
-                model_name=identifier,
-                model=item,
-                log_model_info=True,
-                log_model_layers=False
+                model_name=identifier, model=item, log_model_info=True, log_model_layers=False
             )
         elif kind == "torch":
             from torch.utils.data import DataLoader
@@ -1349,12 +1330,10 @@ class Prov4MLLogger(Logger):
                 self.yprov4ml.log_param(
                     key=identifier,
                     value=item,
-                    context=self._normalize_context(self.param_context)
+                    context=context,
                 )
         elif kind == "prov_documents":
-            prov_docs = self.yprov4ml.log_provenance_documents(
-                create_graph=True, create_svg=True
-            )
+            prov_docs = self.log_provenance_documents(create_graph=True, create_svg=True)
 
             # Upload to MLFlow
             if self.mlflow.active_run() is not None:
