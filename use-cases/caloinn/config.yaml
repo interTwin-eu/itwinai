@@ -1,0 +1,75 @@
+downloaded_hdf5_location: /gpfs/users/maiborodav/itwinai_0325/use-cases/caloinn/calochallenge_data/
+dataset_type: "dataset_1_pions"
+checkpoint_path: checkpoints/
+epochs: 1
+strategy: ddp
+batch_size: 512
+inference_model_mlflow_uri: checkpoints/best_model.pth
+
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    dataloading_step:
+          _target_: data.CaloChallengeDownloader
+          data_path: ${downloaded_hdf5_location}
+          dataset_type: ${dataset_type}
+
+    readingdataset_step:
+      _target_: data.CalochallengeDataSplitter
+      data_path: ${downloaded_hdf5_location}
+      dataset_type: ${dataset_type}
+      eps: 1.0e-10
+      u0up_cut: 3.5 
+      u0low_cut: 0.0 
+      dep_cut: 600
+      width_noise: 5.0e-6 
+      fixed_noise: False
+      noise: True
+      validation_proportion: 0.01
+
+    training_step:
+      _target_: trainer.CaloChallengeTrainer
+      config:
+        bayesian: False
+        internal_size: 256
+        alpha: 1.0e-8
+        alpha_logit: 1.0e-6
+        log_cond: True
+        use_norm: False
+        sub_layers: [linear, linear, linear, linear]
+        coupling_type: rational_quadratic
+        use_extra_dims: True
+        n_blocks: 12
+        norm: True
+        permute_soft: False
+        bounds_init: 18
+        layers_per_block: 4
+        num_bins: 10
+        dropout: 0.0
+        layer_norm: nn.BatchNorm1d
+        layer_act: nn.SiLU
+        prior_prec: 5000
+        std_init: -15.0
+        batch_size: ${batch_size}
+        eps: 1.0e-10
+
+        max_lr: 1.0e-4
+        optim_lr: 1.0e-5
+        cycle_epochs: 37
+      num_epochs: ${epochs}
+      checkpoint_path: ${checkpoint_path}
+      checkpoint_every: 50
+      strategy: ${strategy}
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 1
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: CaloINN docs test
+            log_freq: batch 
+
+
+
+          
+          
