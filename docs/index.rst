@@ -32,6 +32,7 @@
    how-it-works/workflows/explain_workflows
    how-it-works/hpo/explain-hpo
    how-it-works/scalability-report/scalability_report
+   how-it-works/model-hub/explain_model_hub
 
 .. toctree::
    :maxdepth: 2
@@ -145,6 +146,7 @@ Quick Start
 - :ref:`Hyper-parameter Optimization <hpo-tutorials>`
 - :ref:`ML Workflows <ml-workflows-tutorials>`
 - :ref:`Code Profiling and Optimization <profiling-tutorials>`
+- :ref:`Model Hub <model-hub-tutorials>`
 
 📚 Use Cases & 🧩 Plugins
 ==========================

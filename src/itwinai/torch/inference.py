@@ -21,7 +21,59 @@ from ..loggers import Logger
 from ..serialization import ModelLoader
 from .config import TrainingConfiguration
 from .distributed import TorchDistributedStrategy
+from .model_hub.download import discover_weights_file, download_file
+from .model_hub.utils import has_internet_connection
 from .trainer import TorchTrainer
+
+
+class ModelHubModelLoader(ModelLoader):
+    """Pulls a model file from the RI-SCALE Model Hub and loads it as a
+    torch model.
+
+    Args:
+        model_id (str): Model Hub artifact ID.
+        file_path (str | None): Name of the file to download within the model's
+            artifact. If None, will attempt to auto-discover the weights file.
+        model_class (nn.Module | None): required if the checkpoint is
+            a state dict rather than a full pickled model.
+        base_url (str): Model Hub artifacts base URL.
+    """
+
+    def __init__(
+        self,
+        model_id: str,
+        file_path: str | None = None,
+        model_class: nn.Module | None = None,
+        base_url: str = "https://hypha.aicell.io/ri-scale/artifacts",
+    ):
+        self.model_id = model_id
+        self.file_path = file_path
+        self.model_class = model_class
+        self.base_url = base_url
+
+    def __call__(self) -> nn.Module:
+        if not has_internet_connection():
+            raise ConnectionError(
+                "No internet connection: cannot reach the Model Hub to pull "
+                f"model '{self.model_id}'."
+            )
+
+        file_path = self.file_path or discover_weights_file(self.base_url, self.model_id)
+        dst_dir = Path("tmp") / "modelhub_downloads" / self.model_id
+        ckpt_path = download_file(self.base_url, self.model_id, file_path, dst_dir)
+
+        checkpoint = torch.load(ckpt_path, weights_only=False)
+        if self.model_class is None:
+            raise ValueError(
+                "model_class is required: Model Hub checkpoints store weights "
+                "as a raw state_dict, not a pickled model object."
+            )
+        model = self.model_class()
+        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+            model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+        else:
+            model.load_state_dict(checkpoint, strict=False)
+        return model.eval()
 
 
 class TorchModelLoader(ModelLoader):
@@ -213,7 +265,7 @@ class TorchPredictor(TorchTrainer, Predictor):
         if model is not None:
             # Overrides existing "internal" model
             self.model = model
-        elif isinstance(self.model, TorchModelLoader):
+        elif isinstance(self.model, ModelLoader):
             self.model = self.model()
 
         self.create_dataloaders(inference_dataset=inference_dataset)
@@ -271,6 +323,8 @@ class TorchPredictor(TorchTrainer, Predictor):
         """Post-process the predictions of the torch model (e.g., apply
         threshold in case of multi-label classifier).
         """
+
+        return batch
 
 
 class MulticlassTorchPredictor(TorchPredictor):

@@ -8,6 +8,7 @@
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
 # --------------------------------------------------------------------------------------
 
 
@@ -40,6 +41,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchmetrics import Metric
 from tqdm import tqdm
 
+from itwinai.torch.model_hub.feature import ModelHubFeature
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
@@ -300,6 +302,8 @@ class TorchTrainer(Trainer, LogMixin):
             run_name = generate_random_name()
 
         self.run_name = run_name
+
+        self._model_hub = ModelHubFeature(getattr(self.config, "model_hub", {}))
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -618,6 +622,10 @@ class TorchTrainer(Trainer, LogMixin):
         config_path = ckpt_dir / "config.yaml"
         with config_path.open("w") as f:
             yaml.safe_dump(self.config.model_dump(), f)
+
+        # Save model and manifest locally if enabled
+        if self._model_hub.enabled:
+            self._model_hub.on_checkpoint_saved(self, ckpt_dir)
 
         # Log each file with an appropriate identifier
         self.log(str(state_path), f"{name}_state", kind="artifact")
@@ -1268,6 +1276,10 @@ class TorchTrainer(Trainer, LogMixin):
                     kind="metric",
                     step=self.current_epoch,
                 )
+        if self.strategy.is_main_worker and self._model_hub.enabled:
+            best_ckpt_dir = Path(self.checkpoints_location) / "best_model"
+            if best_ckpt_dir.exists():
+                self._model_hub.on_training_end(self, best_ckpt_dir)
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.
