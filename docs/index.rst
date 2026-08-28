@@ -20,6 +20,7 @@
    getting-started/containers
    getting-started/plugins
    getting-started/plugins-list
+   getting-started/claude-skill
    getting-started/glossary
 
 .. toctree::
@@ -145,6 +146,7 @@ Quick Start
 - :ref:`Hyper-parameter Optimization <hpo-tutorials>`
 - :ref:`ML Workflows <ml-workflows-tutorials>`
 - :ref:`Code Profiling and Optimization <profiling-tutorials>`
+- :doc:`Integrating a New Use Case with Claude Code <tutorials/claude-skill/integrate-a-new-use-case>`
 
 📚 Use Cases & 🧩 Plugins
 ==========================
@@ -154,6 +156,7 @@ Quick Start
 - :doc:`Fast particle detector simulation (CERN) <use-cases/3dgan_doc>`
 - :doc:`Writing Plugins for itwinai <getting-started/plugins>`
 - :doc:`Current List of itwinai Plugins <getting-started/plugins-list>`
+- :doc:`Integrating a Use Case with Claude Code <getting-started/claude-skill>`
 
 For the full list of scientific use cases refer to the navigation side bar.
 
