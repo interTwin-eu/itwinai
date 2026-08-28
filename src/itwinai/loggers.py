@@ -70,8 +70,10 @@ A logger allows to save objects of different kinds:
 """
 
 import functools
+import inspect
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
@@ -666,7 +668,24 @@ class MLFlowLogger(Logger):
             import torch
 
             if isinstance(item, torch.nn.Module):
-                self.mlflow.pytorch.log_model(item, identifier)
+                # MLflow >=3 turned the run-relative artifact path into a validated model
+                # name, and defaults to the 'pt2' format, which requires an input_example.
+                model_name = re.sub(r"""[/:.%"']""", "_", identifier) or "model"
+                if model_name != identifier:
+                    py_logger.warning(
+                        "MLflow model names cannot contain / : . % \" ', logging"
+                        f" '{identifier}' as '{model_name}'"
+                    )
+                accepted = {
+                    name
+                    for name, param in inspect.signature(
+                        self.mlflow.pytorch.log_model
+                    ).parameters.items()
+                    if param.kind is not inspect.Parameter.VAR_KEYWORD
+                } - {"pytorch_model", "name", "artifact_path"}
+                model_kwargs = {k: v for k, v in kwargs.items() if k in accepted}
+                model_kwargs.setdefault("serialization_format", "pickle")
+                self.mlflow.pytorch.log_model(item, name=model_name, **model_kwargs)
             else:
                 py_logger.warning("Unrecognized model type.")
         elif kind == "dataset":

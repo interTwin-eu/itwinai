@@ -15,5 +15,5 @@ itwinai exec-pipeline +pipe_key=training_pipeline
 View training logs on MLFLow server (if activated from the configuration):
 
 ```bash
-mlflow ui --backend-store-uri mllogs/mlflow/
+itwinai mlflow-ui --path mllogs/mlflow/
 ```

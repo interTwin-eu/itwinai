@@ -30,7 +30,7 @@ dependencies = [
   "typer>=0.9.0",
   "numpy<2.0.0",
   "wandb>=0.18.7",
-  "mlflow>=2.17.2",
+  "mlflow>=3.1,<4",
   "wheel>=0.45.0",
   "seaborn>=0.13.2",
   "py-cpuinfo>=9.0.0",
@@ -93,7 +93,12 @@ hpo = [
   "hpbandster>=0.7.0",
   "gpy>=1.13.2",
 ]
-modelhub = ["hypha-rpc", "dotenv", "httpx", "hypha-artifact"]
+modelhub = [
+  "hypha-rpc",
+  "dotenv",
+  "httpx",
+  "hypha-artifact; python_version >= '3.11'",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
