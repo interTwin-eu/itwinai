@@ -62,6 +62,11 @@ if not plain_logger.hasHandlers():
     plain_logger.addHandler(h)
 plain_logger.propagate = False
 
+# MLflow: itwinai logs to a local filesystem backend by default, which MLflow >=3.14
+# rejects unless this opt-out is set.
+if os.environ.get("MLFLOW_ALLOW_FILE_STORE", None) is None:
+    os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
+
 # Ray
 if os.environ.get("TUNE_DISABLE_STRICT_METRIC_CHECKING", None) is None:
     os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"

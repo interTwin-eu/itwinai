@@ -110,7 +110,7 @@ To visualize the logs generated with **MLFLow**, if you set a local path as trac
 run the following in the terminal:
 
 ```bash
-mlflow ui --backend-store-uri LOCAL_TRACKING_URI
+itwinai mlflow-ui --path LOCAL_TRACKING_URI
 ```
 
 And select the "3DGAN" experiment.
