@@ -10,7 +10,7 @@ clients on top of the ``jlab-slim`` itwinai image. Alternatively, you can use an
 published image:
 
 - **RUCIO + itwinai image**:
-  ``ghcr.io/okrochak/hypermeteo-downscaling-plugin``
+  ``ghcr.io/intertwin-eu/itwinai:jlab-rucio-latest``
 
 These images provide the complete itwinai functionality in addition to RUCIO.
 

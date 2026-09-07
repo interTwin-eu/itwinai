@@ -212,7 +212,7 @@ If you use **itwinai** in your research, please cite:
 
    Bunino et al., (2026). itwinai: A Python Toolkit for Scalable Scientific
    Machine Learning on HPC Systems. Journal of Open Source Software, 11(117),
-   1.    https://doi.org/10.21105/joss.09409
+   9409.    https://doi.org/10.21105/joss.09409
 
 BibTeX:
 
