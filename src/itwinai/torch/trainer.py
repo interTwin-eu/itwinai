@@ -1231,8 +1231,13 @@ class TorchTrainer(Trainer, LogMixin):
                     step=self.current_epoch,
                 )
                 if avg_metric < self.best_validation_metric:
+                    checkpoint_name = (
+                        self._model_hub.final_checkpoint_name
+                        if self._model_hub.enabled
+                        else "best_model"
+                    )
                     best_ckpt_path = self.save_checkpoint(
-                        name="best_model",
+                        name=checkpoint_name,
                         best_validation_metric=avg_metric,
                         force=True,
                     )
@@ -1277,7 +1282,9 @@ class TorchTrainer(Trainer, LogMixin):
                     step=self.current_epoch,
                 )
         if self.strategy.is_main_worker and self._model_hub.enabled:
-            best_ckpt_dir = Path(self.checkpoints_location) / "best_model"
+            best_ckpt_dir = (
+                Path(self.checkpoints_location) / self._model_hub.final_checkpoint_name
+            )
             if best_ckpt_dir.exists():
                 self._model_hub.on_training_end(self, best_ckpt_dir)
 

@@ -52,15 +52,17 @@ class ModelHubModelLoader(ModelLoader):
         self.base_url = base_url
 
     def __call__(self) -> nn.Module:
-        if not has_internet_connection():
-            raise ConnectionError(
-                "No internet connection: cannot reach the Model Hub to pull "
-                f"model '{self.model_id}'."
-            )
-
         file_path = self.file_path or discover_weights_file(self.base_url, self.model_id)
         dst_dir = Path("tmp") / "modelhub_downloads" / self.model_id
-        ckpt_path = download_file(self.base_url, self.model_id, file_path, dst_dir)
+        ckpt_path = dst_dir / Path(file_path).name
+
+        if not ckpt_path.exists():
+            if not has_internet_connection():
+                raise ConnectionError(
+                    "No internet connection: cannot reach the Model Hub to pull "
+                    f"model '{self.model_id}'."
+                )
+            ckpt_path = download_file(self.base_url, self.model_id, file_path, dst_dir)
 
         checkpoint = torch.load(ckpt_path, weights_only=False)
         if self.model_class is None:
@@ -101,17 +103,16 @@ class TorchModelLoader(ModelLoader):
         """
         if Path(self.model_uri).exists():
             # Model is on local filesystem.
-            checkpoint = torch.load(self.model_uri, weights_only=False)
-
+            checkpoint = torch.load(self.model_uri, weights_only=True)
+            if self.model_class is None:
+                raise ValueError(
+                    "model_class required to instantiate model when checkpoint is dict."
+                )
+            model = self.model_class()
             if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-                if self.model_class is None:
-                    raise ValueError(
-                        "model_class required to instantiate model when checkpoint is dict."
-                    )
-                model = self.model_class()
-                model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+                model.load_state_dict(checkpoint["model_state_dict"], strict=True)
             else:
-                model = checkpoint
+                model.load_state_dict(checkpoint, strict=True)
 
             return model.eval()
 
@@ -266,7 +267,12 @@ class TorchPredictor(TorchTrainer, Predictor):
             # Overrides existing "internal" model
             self.model = model
         elif isinstance(self.model, ModelLoader):
-            self.model = self.model()
+            loader = self.model()
+            if self.strategy.is_main_worker:
+                self.model = loader()
+            self.strategy.barrier()
+            if not self.strategy.is_main_worker:
+                self.model = loader()
 
         self.create_dataloaders(inference_dataset=inference_dataset)
 

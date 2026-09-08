@@ -970,14 +970,14 @@ def upload_model_to_hub(
         str | None,
         typer.Option(
             "--api-token",
-            help="API token. If not provided, use HYPHA_TOKEN or .env file.",
+            help="API token. If not provided, use HYPHA_API_TOKEN or .env file.",
         ),
     ] = None,
     env_file: Annotated[
         str | None,
         typer.Option(
             "--env-file",
-            help="Path to .env file containing HYPHA_SERVER_URL and HYPHA_TOKEN.",
+            help="Path to .env file containing HYPHA_SERVER_URL and HYPHA_API_TOKEN.",
         ),
     ] = None,
     upload_script: Annotated[
@@ -1043,7 +1043,7 @@ def upload_model_to_hub(
 
     # Get credentials with priority: CLI args > env vars > .env file
     final_hub_url = hub_url or env_vars.get("HYPHA_SERVER_URL")
-    final_api_token = api_token or env_vars.get("HYPHA_TOKEN")
+    final_api_token = api_token or env_vars.get("HYPHA_API_TOKEN")
 
     if not final_hub_url:
         cli_logger.error(
@@ -1058,14 +1058,14 @@ def upload_model_to_hub(
         cli_logger.error(
             "API token not provided. Set it via:\n"
             "  - --api-token option\n"
-            "  - HYPHA_TOKEN environment variable\n"
-            "  - HYPHA_TOKEN in .env file"
+            "  - HYPHA_API_TOKEN environment variable\n"
+            "  - HYPHA_API_TOKEN in .env file"
         )
         raise typer.Exit(code=1)
 
     # Update environment variables for subprocess
     env_vars["HYPHA_SERVER_URL"] = final_hub_url
-    env_vars["HYPHA_TOKEN"] = final_api_token
+    env_vars["HYPHA_API_TOKEN"] = final_api_token
 
     # Get or download the upload script
     upload_script_path = None

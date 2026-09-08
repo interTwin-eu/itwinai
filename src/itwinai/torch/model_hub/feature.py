@@ -18,16 +18,12 @@ class ModelHubFeature:
         if not self.enabled:
             return
         ckpt_dir = Path(ckpt_dir)
-        if ckpt_dir.name != self.final_checkpoint_name:
-            return
         write_manifest(ckpt_dir, self.config)
 
     def on_training_end(self, trainer, ckpt_dir):
         if not self.enabled:
             return
         ckpt_dir = Path(ckpt_dir)
-        if ckpt_dir.name != self.final_checkpoint_name:
-            return
         write_manifest(ckpt_dir, self.config)
 
         mode = self.config.get("mode", "deferred")

@@ -9,5 +9,5 @@ class AIModelHubBackend(BaseBackend):
     def upload(self, model_dir: Path):
         subprocess.run(
             ["itwinai", "upload-model-to-hub", str(model_dir)],
-            check=False,
+            check=True,
         )
