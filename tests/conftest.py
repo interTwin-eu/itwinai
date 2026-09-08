@@ -12,8 +12,6 @@ from pathlib import Path
 
 import pytest
 
-os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
-
 
 @pytest.fixture
 def torch_env() -> str:
