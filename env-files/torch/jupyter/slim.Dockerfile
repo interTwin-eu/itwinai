@@ -51,17 +51,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set up CERN/ESCAPE CA certs
-# RUN wget -q -O - https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add - && \
-#     add-apt-repository 'deb http://repository.egi.eu/sw/production/cas/1/current egi-igtf core' && \
-#     apt-get update && \
-#     apt-get -y install ca-policy-egi-core && \
-#     rm -rf /var/lib/apt/lists/*
-# Since they are not available for Debian as an apt package, we need to install them manually
-RUN mkdir -p /etc/grid-security/certificates && \
-    wget -q https://dist.eugridpma.info/distribution/igtf/current/igtf-policy-installation-bundle.tar.gz && \
-    tar -xzf igtf-policy-installation-bundle.tar.gz -C /etc/grid-security/certificates --strip-components=1 && \
-    rm igtf-policy-installation-bundle.tar.gz
+# IGTF-accredited CA bundle - the trust anchors GFAL2 needs to talk to RSE storage endpoints.
+#
+# Installed from the signed EGI apt repository. The previous approach unpacked
+# igtf-policy-installation-bundle.tar.gz, which is a SOURCE tree needing ./configure && make
+# install: with --strip-components=1 the certificates landed under
+# /etc/grid-security/certificates/src/accredited/ and no <hash>.0 symlinks were ever created,
+# so the directory was unusable as an X509_CERT_DIR.
+#
+# NOTE: ca-policy-egi-core pulls the individual CAs via Recommends, hence no
+# --no-install-recommends, and the CA packages do not create their own parent directory,
+# hence the mkdir.
+RUN set -euo pipefail && \
+    mkdir -p /etc/grid-security/certificates /etc/apt/keyrings && \
+    curl -fsSL https://repository.egi.eu/sw/production/cas/1/current/GPG-KEY-EUGridPMA-RPM-4 \
+    -o /etc/apt/keyrings/egi-igtf.asc && \
+    echo "deb [signed-by=/etc/apt/keyrings/egi-igtf.asc] https://repository.egi.eu/sw/production/cas/1/current egi-igtf core" \
+    > /etc/apt/sources.list.d/egi-igtf.list && \
+    apt-get update && apt-get install -y ca-policy-egi-core && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    test "$(find /etc/grid-security/certificates -name '*.0' | wc -l)" -gt 50
+
+ENV X509_CERT_DIR=/etc/grid-security/certificates
 
 # VOMS setup
 RUN mkdir -p /etc/vomses && \
@@ -102,8 +113,30 @@ ENV JUPYTER_ENABLE_LAB=yes
 RUN curl -LsSf https://astral.sh/uv/install.sh \
     | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
 
-# Install jupyter ecosystem
 USER $NB_UID
+
+# RUCIO transfer stack (GFAL2 + XRootD) installed into the BASE conda environment - the one
+# the notebook kernel runs on - rather than a side environment. This is what lets a notebook
+# do `import gfal2` and drive RUCIO's DownloadClient in-process, alongside torch and itwinai.
+#
+# Deliberately placed before every pip layer below: mamba re-solves the environment, and doing
+# that while it is still close to the upstream image is far safer than re-solving on top of
+# torch. Anything pip installs afterwards lands in site-packages and leaves these packages be.
+#
+# conda-forge rather than apt: the kernel is /opt/conda/bin/python, while Ubuntu's gfal2.so is
+# built against the system libpython. Mixing the two runtimes in one process is not worth the
+# risk, and conda-forge is also newer (gfal2 2.23.5 vs 2.22.1) with more protocol plugins.
+RUN mamba install -y -n base -c conda-forge \
+    gfal2 \
+    python-gfal2 \
+    gfal2-util \
+    xrootd && \
+    mamba clean -afy && \
+    # Only CONDA_DIR: mamba touches nothing else, and $HOME holds root-owned files
+    # (uv's receipt) that ${NB_USER} cannot chmod.
+    fix-permissions "${CONDA_DIR}"
+
+# Install jupyter ecosystem
 RUN uv pip install --upgrade pip && \
     uv pip install \
     "jupyterhub==5.2.1" \
@@ -125,7 +158,9 @@ RUN uv pip install --upgrade pip && \
     "traitlets"
 
 # Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
-RUN uv pip install rucio-jupyterlab
+# rucio-clients is pinned rather than left to float: rucio-jupyterlab only asks for >=32.0.
+ARG RUCIO_CLIENTS_VERSION=39.*
+RUN uv pip install rucio-jupyterlab "rucio-clients[argcomplete]==${RUCIO_CLIENTS_VERSION}"
 
 # Install itwinai
 WORKDIR "$HOME/itwinai"
@@ -149,10 +184,25 @@ RUN itwinai sanity-check --torch \
     --optional-deps yprov4ml \
     --optional-deps ray
 
+# RUCIO sanity check: the Python API and the CLIs must both work from the kernel interpreter.
+# Mirrors the check in env-files/torch/slim.Dockerfile; here the interpreter assertion also
+# guards against a side conda environment being prepended to PATH and shadowing the kernel,
+# which is what used to break `import gfal2` in notebooks.
+RUN test "$(command -v python)" = "${CONDA_DIR}/bin/python" && \
+    python -c "import gfal2, gfal2_util, torch, itwinai; from rucio.client.client import Client; \
+    from rucio.client.downloadclient import DownloadClient" && \
+    rucio --version && \
+    gfal-copy --version && \
+    test "$(find "${X509_CERT_DIR}" -name '*.0' | wc -l)" -gt 50
+
 # Add tests
 WORKDIR /app
 COPY --chown=${NB_UID} tests tests
 COPY --chown=${NB_UID} env-files/torch/jupyter/slim.Dockerfile Dockerfile
+
+# RUCIO client configuration. This is a template - 'account' is a placeholder - so mount your
+# own over /app/rucio.cfg, or point RUCIO_CONFIG at it. See env-files/torch/rucio-testing.txt.
+COPY --chown=${NB_UID} env-files/torch/rucio.cfg rucio.cfg
 
 # This is most likely ignored when jupyterlab is launched from jhub, in favour of jupyterhub-singleuser
 CMD ["start-notebook.sh"]
