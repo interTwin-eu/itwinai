@@ -55,7 +55,7 @@ inference_pipeline:
         model_hub: ${model_hub}
       strategy: ddp
       model:
-        _target_: itwinai.torch.inference.ModelHubModelLoader
+        _target_: itwinai.model_hub.feature.ModelHubModelLoader
         model_id: ${model_hub.manifest.id}
         # `model_class` needs to end up as the *class* itself, not an instance --
         # `synthetic_data.sanity_check_model_class` is a plain function that returns

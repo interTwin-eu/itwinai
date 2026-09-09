@@ -41,7 +41,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchmetrics import Metric
 from tqdm import tqdm
 
-from itwinai.torch.model_hub.feature import ModelHubFeature
+from itwinai.model_hub.feature import ModelHubFeature
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 

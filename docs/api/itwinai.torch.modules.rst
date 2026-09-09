@@ -49,7 +49,7 @@ loggers
 
 model_hub.feature
 ++++++++++++++++++
-.. automodule:: itwinai.torch.model_hub.feature
+.. automodule:: itwinai.model_hub.feature
    :members:
    :undoc-members:
    :show-inheritance:
@@ -58,7 +58,7 @@ model_hub.feature
 
 model_hub.download
 +++++++++++++++++++
-.. automodule:: itwinai.torch.model_hub.download
+.. automodule:: itwinai.model_hub.download
    :members:
    :undoc-members:
    :show-inheritance:
@@ -67,16 +67,7 @@ model_hub.download
 
 model_hub.manifest
 +++++++++++++++++++
-.. automodule:: itwinai.torch.model_hub.manifest
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :member-order: bysource
-
-
-model_hub.utils
-++++++++++++++++
-.. automodule:: itwinai.torch.model_hub.utils
+.. automodule:: itwinai.model_hub.manifest
    :members:
    :undoc-members:
    :show-inheritance:
@@ -85,7 +76,7 @@ model_hub.utils
 
 model_hub.backends.base
 ++++++++++++++++++++++++
-.. automodule:: itwinai.torch.model_hub.backends.base
+.. automodule:: itwinai.model_hub.backends.base
    :members:
    :undoc-members:
    :show-inheritance:
@@ -94,7 +85,7 @@ model_hub.backends.base
 
 model_hub.backends.itwinai_hub
 +++++++++++++++++++++++++++++++
-.. automodule:: itwinai.torch.model_hub.backends.itwinai_hub
+.. automodule:: itwinai.model_hub.backends.itwinai_hub
    :members:
    :undoc-members:
    :show-inheritance:

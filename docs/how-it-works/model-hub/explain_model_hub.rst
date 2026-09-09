@@ -16,15 +16,15 @@ Model Hub support is enabled in its configuration. On every checkpoint save
 (:meth:`~itwinai.torch.trainer.TorchTrainer.save_checkpoint`), the checkpoint directory --
 containing ``model.pt`` (the model's raw ``state_dict``), ``state.pt`` (optimizer/scheduler/
 epoch state), and ``config.yaml`` -- is handed to
-:class:`~itwinai.torch.model_hub.feature.ModelHubFeature`, which:
+:class:`~itwinai.model_hub.feature.ModelHubFeature`, which:
 
 1. Writes a ``manifest.yaml`` into the checkpoint directory via
-   :func:`~itwinai.torch.model_hub.manifest.write_manifest`, merging user-supplied fields
+   :func:`~itwinai.model_hub.manifest.write_manifest`, merging user-supplied fields
    with sensible defaults. At minimum, ``id`` and ``name`` must be provided.
 2. Uploads the checkpoint directory using the configured backend at the end of all epochs.
-   Backends implement :class:`~itwinai.torch.model_hub.backends.base.BaseBackend` and are
-   selected by name via :func:`~itwinai.torch.model_hub.backends.get_backend`. Currently the
-   only backend is :class:`~itwinai.torch.model_hub.backends.itwinai_hub.AIModelHubBackend`.
+   Backends implement :class:`~itwinai.model_hub.backends.base.BaseBackend` and are
+   selected by name via :func:`~itwinai.model_hub.backends.get_backend`. Currently the
+   only backend is :class:`~itwinai.model_hub.backends.itwinai_hub.AIModelHubBackend`.
    The abstraction is to enable future backends (e.g. HuggingFace).
 
 The timing of the upload is controlled by a ``mode`` setting:
@@ -54,7 +54,7 @@ The timing of the upload is controlled by a ``mode`` setting:
 Pulling a model
 ---------------
 
-Pulling is handled by :class:`~itwinai.torch.inference.ModelHubModelLoader`, an
+Pulling is handled by :class:`~itwinai.model_hub.feature.ModelHubModelLoader`, an
 implementation of :class:`~itwinai.serialization.ModelLoader`. Like any other
 ``ModelLoader``, it can be used wherever a model loader is expected -- most commonly as the
 ``model`` argument of :class:`~itwinai.torch.inference.TorchPredictor`.
@@ -66,9 +66,9 @@ exact path, ``ModelHubModelLoader`` supports two modes:
 
   - If ``file_path`` is provided explicitly, that file is downloaded directly.
   - If ``file_path`` is omitted, itwinai lists the model's files
-    (:func:`~itwinai.torch.model_hub.download.list_files`) and locates
+    (:func:`~itwinai.model_hub.download.list_files`) and locates
     ``root/<checkpoint_dir_name>/model.pt`` automatically
-    (:func:`~itwinai.torch.model_hub.download.discover_weights_file`), matching the layout
+    (:func:`~itwinai.model_hub.download.discover_weights_file`), matching the layout
     produced by :meth:`~itwinai.torch.trainer.TorchTrainer.save_checkpoint`.
     ``discover_weights_file`` only looks for a top-level ``root/`` entry; it does not
     inspect or otherwise handle any other top-level entries the Hub may contain.
@@ -81,7 +81,7 @@ exact path, ``ModelHubModelLoader`` supports two modes:
           _target_: itwinai.torch.inference.TorchPredictor
           config: {}
           model:
-            _target_: itwinai.torch.inference.ModelHubModelLoader
+            _target_: itwinai.model_hub.feature.ModelHubModelLoader
             model_id: checkpoint-example
             model_class: my_module.MyModel
 
@@ -98,6 +98,6 @@ Connectivity
 ------------
 
 Both pushing (in ``auto`` mode) and pulling rely on the same connectivity check,
-:func:`~itwinai.torch.model_hub.utils.has_internet_connection`. Pulling always requires
+:func:`~itwinai.model_hub.feature.has_internet_connection`. Pulling always requires
 internet access -- unlike pushing, there is no offline or deferred mode for pulling, since
 there is no local fallback artifact to use in its place.
