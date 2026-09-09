@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import torch
-from backends import get_backend
-from download import discover_weights_file, download_file
-from manifest import write_manifest
 from torch import nn
 
 from ..serialization import ModelLoader
+from .backends import get_backend
+from .download import discover_weights_file, download_file
+from .manifest import write_manifest
 
 
 class ModelHubFeature:
