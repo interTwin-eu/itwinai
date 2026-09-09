@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Alex Krochak <o.krochak@fz-juelich.de> - JSC
 # --------------------------------------------------------------------------------------
 
 # Dockerfile for slim itwinai image. MPI, CUDA and other need to be mounted from the host machine.
@@ -62,6 +63,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_TRANSFORMER_INFERENCE=0
 
 # Install itwinai with torch
+ARG RUCIO_CLIENTS_VERSION=39.*
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
@@ -82,6 +84,11 @@ RUN uv pip install --no-cache-dir --upgrade pip wheel \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
+    # RUCIO clients go into the itwinai venv so that user code can use the RUCIO Python API
+    # (rucio.client.Client, DownloadClient) alongside torch in a single interpreter. Resolving
+    # them together with itwinai here means a future incompatibility fails the build rather than
+    # silently diverging: rucio-clients declares all its dependencies unpinned.
+    "rucio-clients[argcomplete]==${RUCIO_CLIENTS_VERSION}" \
     # "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     # Minimal installation to run CI tests in the container with pytest
     pytest \
@@ -102,9 +109,6 @@ RUN itwinai sanity-check --torch \
     --optional-deps horovod \
     --optional-deps yprov4ml \
     --optional-deps ray
-
-
-
 
 
 # App image
@@ -128,7 +132,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-mpi4py \
     # Needed to pull OpenMPI and to use this container in ray k8s cluster as Head/Worker container
     wget \
+    # RUCIO transfer stack. Ubuntu ships gfal2, its plugins and the XRootD client natively, so
+    # no separate conda env (and no second Python interpreter) is needed for them.
+    gfal2 \
+    gfal2-util-scripts \
+    python3-gfal2 \
+    python3-gfal2-util \
+    # One plugin per transfer protocol; without these gfal2 cannot talk to any RSE
+    gfal2-plugin-file \
+    gfal2-plugin-gridftp \
+    gfal2-plugin-http \
+    gfal2-plugin-srm \
+    gfal2-plugin-xrootd \
+    xrootd-client \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# IGTF-accredited CA bundle - needed for GFAL2 to trust RSE storage endpoints
+# (e.g. TUBITAK_WEBDAV's TR-Grid CA 2024). Separate from the system trust store.
+# Installed from the signed EGI apt repository, so a broken download fails the build instead of
+# silently producing an incomplete trust store.
+# NOTE: ca-policy-egi-core pulls the individual CAs via Recommends, hence no --no-install-recommends,
+# and the CA packages do not create their own parent directory, hence the mkdir.
+RUN set -euo pipefail && \
+    mkdir -p /etc/grid-security/certificates /etc/apt/keyrings && \
+    wget -qO /etc/apt/keyrings/egi-igtf.asc \
+    https://repository.egi.eu/sw/production/cas/1/current/GPG-KEY-EUGridPMA-RPM-4 && \
+    echo "deb [signed-by=/etc/apt/keyrings/egi-igtf.asc] https://repository.egi.eu/sw/production/cas/1/current egi-igtf core" \
+    > /etc/apt/sources.list.d/egi-igtf.list && \
+    apt-get update && apt-get install -y ca-policy-egi-core && \
+    apt-get clean -y && rm -rf /var/lib/apt/lists/* && \
+    test "$(find /etc/grid-security/certificates -name '*.0' | wc -l)" -gt 50
 
 
 # # Singularity may change the $PATH, hence this env var may increase the chances that the venv
@@ -157,6 +190,31 @@ RUN itwinai sanity-check --torch \
     --optional-deps yprov4ml \
     --optional-deps ray
 
+# Expose the apt-installed gfal2 bindings inside the itwinai venv, so DownloadClient and user code
+# can drive transfers in-process. Linked module by module rather than putting dist-packages on
+# sys.path, so nothing else from the system Python can shadow a venv package.
+# gfal2.so is linked against libboost_python312, hence the interpreter version assertion.
+RUN set -euo pipefail && \
+    /opt/venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 12), sys.version' && \
+    SITE="$(/opt/venv/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')" && \
+    ln -s /usr/lib/python3/dist-packages/gfal2.so "${SITE}/gfal2.so" && \
+    ln -s /usr/lib/python3/dist-packages/gfal2_util "${SITE}/gfal2_util"
+
+# The gfal2-util wrappers search PATH for an interpreter that can import gfal2 and otherwise fall
+# back to /usr/bin/python, which does not exist here. GFAL_PYTHONBIN is their documented hook and
+# is checked first; pointing it at the venv keeps the CLIs working even if PATH is rewritten by
+# Singularity/Apptainer (see the PATH note above).
+ENV GFAL_PYTHONBIN=/opt/venv/bin/python \
+    X509_CERT_DIR=/etc/grid-security/certificates
+
+# RUCIO sanity check: the Python API and the CLIs must both work from the itwinai venv.
+RUN test "$(command -v python)" = "/opt/venv/bin/python" && \
+    python -c "import gfal2, gfal2_util, torch; from rucio.client.client import Client; \
+    from rucio.client.downloadclient import DownloadClient" && \
+    rucio --version && \
+    gfal-copy --version && \
+    test "$(find "${X509_CERT_DIR}" -name '*.0' | wc -l)" -gt 50
+
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY tests tests
@@ -172,13 +230,13 @@ ARG BASE_IMG_DIGEST
 
 # https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
 LABEL org.opencontainers.image.created=${CREATION_DATE}
-LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch"
+LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch & Alex Krochak - o.krochak@fz-juelich.de"
 LABEL org.opencontainers.image.url="https://github.com/interTwin-eu/itwinai"
 LABEL org.opencontainers.image.documentation="https://itwinai.readthedocs.io/"
 LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
 LABEL org.opencontainers.image.version=${ITWINAI_VERSION}
 LABEL org.opencontainers.image.revision=${COMMIT_HASH}
-LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research"
+LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research & JSC - Jülich Supercomputing Centre"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
 LABEL org.opencontainers.image.title="itwinai"
