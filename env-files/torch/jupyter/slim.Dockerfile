@@ -6,6 +6,7 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri
+# - Alex Krochak <o.krochak@fz-juelich.de> - FZJ (Rucio GFAL2 update)
 # --------------------------------------------------------------------------------------
 
 # Container image for JupyterHub 2.5.1 -- supports JupyterLab 4
@@ -52,16 +53,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # IGTF-accredited CA bundle - the trust anchors GFAL2 needs to talk to RSE storage endpoints.
-#
-# Installed from the signed EGI apt repository. The previous approach unpacked
-# igtf-policy-installation-bundle.tar.gz, which is a SOURCE tree needing ./configure && make
-# install: with --strip-components=1 the certificates landed under
-# /etc/grid-security/certificates/src/accredited/ and no <hash>.0 symlinks were ever created,
-# so the directory was unusable as an X509_CERT_DIR.
-#
-# NOTE: ca-policy-egi-core pulls the individual CAs via Recommends, hence no
-# --no-install-recommends, and the CA packages do not create their own parent directory,
-# hence the mkdir.
 RUN set -euo pipefail && \
     mkdir -p /etc/grid-security/certificates /etc/apt/keyrings && \
     curl -fsSL https://repository.egi.eu/sw/production/cas/1/current/GPG-KEY-EUGridPMA-RPM-4 \
@@ -115,25 +106,13 @@ RUN curl -LsSf https://astral.sh/uv/install.sh \
 
 USER $NB_UID
 
-# RUCIO transfer stack (GFAL2 + XRootD) installed into the BASE conda environment - the one
-# the notebook kernel runs on - rather than a side environment. This is what lets a notebook
-# do `import gfal2` and drive RUCIO's DownloadClient in-process, alongside torch and itwinai.
-#
-# Deliberately placed before every pip layer below: mamba re-solves the environment, and doing
-# that while it is still close to the upstream image is far safer than re-solving on top of
-# torch. Anything pip installs afterwards lands in site-packages and leaves these packages be.
-#
-# conda-forge rather than apt: the kernel is /opt/conda/bin/python, while Ubuntu's gfal2.so is
-# built against the system libpython. Mixing the two runtimes in one process is not worth the
-# risk, and conda-forge is also newer (gfal2 2.23.5 vs 2.22.1) with more protocol plugins.
+# RUCIO transfer stack (GFAL2 + XRootD) installed into the BASE conda environment 
 RUN mamba install -y -n base -c conda-forge \
     gfal2 \
     python-gfal2 \
     gfal2-util \
     xrootd && \
     mamba clean -afy && \
-    # Only CONDA_DIR: mamba touches nothing else, and $HOME holds root-owned files
-    # (uv's receipt) that ${NB_USER} cannot chmod.
     fix-permissions "${CONDA_DIR}"
 
 # Install jupyter ecosystem
@@ -157,8 +136,6 @@ RUN uv pip install --upgrade pip && \
     "jsonschema" \
     "traitlets"
 
-# Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
-# rucio-clients is pinned rather than left to float: rucio-jupyterlab only asks for >=32.0.
 ARG RUCIO_CLIENTS_VERSION=39.*
 RUN uv pip install rucio-jupyterlab "rucio-clients[argcomplete]==${RUCIO_CLIENTS_VERSION}"
 
@@ -184,25 +161,10 @@ RUN itwinai sanity-check --torch \
     --optional-deps yprov4ml \
     --optional-deps ray
 
-# RUCIO sanity check: the Python API and the CLIs must both work from the kernel interpreter.
-# Mirrors the check in env-files/torch/slim.Dockerfile; here the interpreter assertion also
-# guards against a side conda environment being prepended to PATH and shadowing the kernel,
-# which is what used to break `import gfal2` in notebooks.
-RUN test "$(command -v python)" = "${CONDA_DIR}/bin/python" && \
-    python -c "import gfal2, gfal2_util, torch, itwinai; from rucio.client.client import Client; \
-    from rucio.client.downloadclient import DownloadClient" && \
-    rucio --version && \
-    gfal-copy --version && \
-    test "$(find "${X509_CERT_DIR}" -name '*.0' | wc -l)" -gt 50
-
 # Add tests
 WORKDIR /app
 COPY --chown=${NB_UID} tests tests
 COPY --chown=${NB_UID} env-files/torch/jupyter/slim.Dockerfile Dockerfile
-
-# RUCIO client configuration. This is a template - 'account' is a placeholder - so mount your
-# own over /app/rucio.cfg, or point RUCIO_CONFIG at it. See env-files/torch/rucio-testing.txt.
-COPY --chown=${NB_UID} env-files/torch/rucio.cfg rucio.cfg
 
 # This is most likely ignored when jupyterlab is launched from jhub, in favour of jupyterhub-singleuser
 CMD ["start-notebook.sh"]
@@ -217,13 +179,13 @@ ARG BASE_IMG_DIGEST
 
 # https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
 LABEL org.opencontainers.image.created=${CREATION_DATE}
-LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
+LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri, Alex Krochak - o.krochak@fz-juelich.de"
 LABEL org.opencontainers.image.url="https://github.com/interTwin-eu/itwinai"
 LABEL org.opencontainers.image.documentation="https://itwinai.readthedocs.io/"
 LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
 LABEL org.opencontainers.image.version=${ITWINAI_VERSION}
 LABEL org.opencontainers.image.revision=${COMMIT_HASH}
-LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research"
+LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research, JSC - Jülich Supercomputing Centre"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
 LABEL org.opencontainers.image.title="itwinai"

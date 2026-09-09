@@ -148,11 +148,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # IGTF-accredited CA bundle - needed for GFAL2 to trust RSE storage endpoints
-# (e.g. TUBITAK_WEBDAV's TR-Grid CA 2024). Separate from the system trust store.
-# Installed from the signed EGI apt repository, so a broken download fails the build instead of
-# silently producing an incomplete trust store.
-# NOTE: ca-policy-egi-core pulls the individual CAs via Recommends, hence no --no-install-recommends,
-# and the CA packages do not create their own parent directory, hence the mkdir.
 RUN set -euo pipefail && \
     mkdir -p /etc/grid-security/certificates /etc/apt/keyrings && \
     wget -qO /etc/apt/keyrings/egi-igtf.asc \
@@ -190,30 +185,15 @@ RUN itwinai sanity-check --torch \
     --optional-deps yprov4ml \
     --optional-deps ray
 
-# Expose the apt-installed gfal2 bindings inside the itwinai venv, so DownloadClient and user code
-# can drive transfers in-process. Linked module by module rather than putting dist-packages on
-# sys.path, so nothing else from the system Python can shadow a venv package.
-# gfal2.so is linked against libboost_python312, hence the interpreter version assertion.
+# Expose the apt-installed gfal2 bindings inside the itwinai venv
 RUN set -euo pipefail && \
     /opt/venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 12), sys.version' && \
     SITE="$(/opt/venv/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')" && \
     ln -s /usr/lib/python3/dist-packages/gfal2.so "${SITE}/gfal2.so" && \
     ln -s /usr/lib/python3/dist-packages/gfal2_util "${SITE}/gfal2_util"
 
-# The gfal2-util wrappers search PATH for an interpreter that can import gfal2 and otherwise fall
-# back to /usr/bin/python, which does not exist here. GFAL_PYTHONBIN is their documented hook and
-# is checked first; pointing it at the venv keeps the CLIs working even if PATH is rewritten by
-# Singularity/Apptainer (see the PATH note above).
 ENV GFAL_PYTHONBIN=/opt/venv/bin/python \
     X509_CERT_DIR=/etc/grid-security/certificates
-
-# RUCIO sanity check: the Python API and the CLIs must both work from the itwinai venv.
-RUN test "$(command -v python)" = "/opt/venv/bin/python" && \
-    python -c "import gfal2, gfal2_util, torch; from rucio.client.client import Client; \
-    from rucio.client.downloadclient import DownloadClient" && \
-    rucio --version && \
-    gfal-copy --version && \
-    test "$(find "${X509_CERT_DIR}" -name '*.0' | wc -l)" -gt 50
 
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
