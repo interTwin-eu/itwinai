@@ -87,7 +87,7 @@ class ModelHubModelLoader(ModelLoader):
                 )
             ckpt_path = download_file(self.base_url, self.model_id, file_path, dst_dir)
 
-        checkpoint = torch.load(ckpt_path, weights_only=False)
+        checkpoint = torch.load(ckpt_path, weights_only=True)
         if self.model_class is None:
             raise ValueError(
                 "model_class is required: Model Hub checkpoints store weights "

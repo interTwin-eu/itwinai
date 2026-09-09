@@ -49,7 +49,7 @@ class TorchModelLoader(ModelLoader):
         """
         if Path(self.model_uri).exists():
             # Model is on local filesystem.
-            checkpoint = torch.load(self.model_uri, weights_only=True)
+            checkpoint = torch.load(self.model_uri, weights_only=False)
             if self.model_class is None:
                 raise ValueError(
                     "model_class required to instantiate model when checkpoint is dict."
