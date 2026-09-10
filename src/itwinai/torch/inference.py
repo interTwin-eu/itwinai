@@ -214,7 +214,7 @@ class TorchPredictor(TorchTrainer, Predictor):
             # Overrides existing "internal" model
             self.model = model
         elif isinstance(self.model, ModelLoader):
-            loader = self.model()
+            loader = self.model
             if self.strategy.is_main_worker:
                 self.model = loader()
             self.strategy.barrier()
