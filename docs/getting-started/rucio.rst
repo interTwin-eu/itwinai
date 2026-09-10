@@ -5,18 +5,11 @@ Using RUCIO with itwinai
 
 itwinai provides pre-built container images to facilitate the deployment and scaling of machine
 learning applications. If you need to use `RUCIO <https://rucio.cern.ch/>`_ for your use case,
-you can build your own container from ``env-files/torch/rucio.Dockerfile``, which adds the RUCIO
-clients on top of the ``jlab-slim`` itwinai image. Alternatively, you can use an already
-published image:
+you can use the images built from Dockerfiles ``env-files/torch/slim.Dockerfile``, or 
+``env-files/torch/jupyter/slim.Dockerfile`` with JupyterLab support.
 
-- **RUCIO + itwinai image**:
-  ``ghcr.io/intertwin-eu/itwinai:jlab-rucio-latest``
-
-These images provide the complete itwinai functionality in addition to RUCIO.
-
-The RUCIO clients are installed in a dedicated conda environment at
-``/opt/conda/envs/rucio``, which is prepended to the ``PATH`` on container start, so the
-``rucio`` command is directly available.
+These images provide the complete itwinai functionality in addition to RUCIO and associated 
+download capabilites. 
 
 RUCIO short guide
 -----------------
