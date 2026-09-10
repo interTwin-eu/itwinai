@@ -84,10 +84,6 @@ RUN uv pip install --no-cache-dir --upgrade pip wheel \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    # RUCIO clients go into the itwinai venv so that user code can use the RUCIO Python API
-    # (rucio.client.Client, DownloadClient) alongside torch in a single interpreter. Resolving
-    # them together with itwinai here means a future incompatibility fails the build rather than
-    # silently diverging: rucio-clients declares all its dependencies unpinned.
     "rucio-clients[argcomplete]==${RUCIO_CLIENTS_VERSION}" \
     # "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     # Minimal installation to run CI tests in the container with pytest
