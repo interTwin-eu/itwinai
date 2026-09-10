@@ -50,15 +50,16 @@ class TorchModelLoader(ModelLoader):
         if Path(self.model_uri).exists():
             # Model is on local filesystem.
             checkpoint = torch.load(self.model_uri, weights_only=False)
-            if self.model_class is None:
-                raise ValueError(
-                    "model_class required to instantiate model when checkpoint is dict."
-                )
-            model = self.model_class()
+
             if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-                model.load_state_dict(checkpoint["model_state_dict"], strict=True)
+                if self.model_class is None:
+                    raise ValueError(
+                        "model_class required to instantiate model when checkpoint is dict."
+                    )
+                model = self.model_class()
+                model.load_state_dict(checkpoint["model_state_dict"], strict=False)
             else:
-                model.load_state_dict(checkpoint, strict=True)
+                model = checkpoint
 
             return model.eval()
 
