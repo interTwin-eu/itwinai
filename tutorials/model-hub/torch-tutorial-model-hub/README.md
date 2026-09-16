@@ -100,11 +100,11 @@ downloads `upload_model.py` from GitHub (unless `--upload-script` is given -- wh
 subprocess call never passes), and needs a Hub URL and token, resolved with priority
 explicit argument > environment variable > `.env` file in the current directory (in this case,
 the file was put in the `tutorials/model-hub/torch-tutorial-model-hub`), using
-`HYPHA_SERVER_URL` and `HYPHA_TOKEN`. Please see [this page](https://github.com/RI-SCALE/ai-model-hub-example/blob/main/.env.example)
+`HYPHA_SERVER_URL` and `HYPHA_API_TOKEN`. Please see [this page](https://github.com/RI-SCALE/ai-model-hub-example/blob/main/.env.example)
 for details on how these parameters should be set.
 
 Because the subprocess call passes neither `--hub-url` nor `--api-token`, **the automatic
-push during training only works if `HYPHA_SERVER_URL` and `HYPHA_TOKEN` are already set as
+push during training only works if `HYPHA_SERVER_URL` and `HYPHA_API_TOKEN` are already set as
 environment variables, or sit in a `.env` file in the working directory `itwinai
 exec-pipeline` is run from.**
 
