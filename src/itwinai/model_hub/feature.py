@@ -68,15 +68,32 @@ class ModelHubModelLoader(ModelLoader):
         file_path: str | None = None,
         model_class: nn.Module | None = None,
         base_url: str = "https://hypha.aicell.io/ri-scale/artifacts",
+        cache_dir: str | Path = "tmp/modelhub_downloads",
     ):
         self.model_id = model_id
         self.file_path = file_path
         self.model_class = model_class
         self.base_url = base_url
+        self.cache_dir = Path(cache_dir)
 
     def __call__(self) -> nn.Module:
-        file_path = self.file_path or discover_weights_file(self.base_url, self.model_id)
-        dst_dir = Path("tmp") / "modelhub_downloads" / self.model_id
+        dst_dir = self.cache_dir / self.model_id
+        discovery_cache = dst_dir / ".discovered_file_path"
+
+        if self.file_path is not None:
+            file_path = self.file_path
+        elif discovery_cache.exists():
+            file_path = discovery_cache.read_text().strip()
+        else:
+            if not has_internet_connection():
+                raise ConnectionError(
+                    "No internet connection: cannot reach the Model Hub to auto-discover "
+                    f"the weights file for model '{self.model_id}'."
+                )
+            file_path = discover_weights_file(self.base_url, self.model_id)
+            dst_dir.mkdir(parents=True, exist_ok=True)
+            discovery_cache.write_text(file_path)
+
         ckpt_path = dst_dir / Path(file_path).name
 
         if not ckpt_path.exists():
@@ -95,9 +112,9 @@ class ModelHubModelLoader(ModelLoader):
             )
         model = self.model_class()
         if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-            model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+            model.load_state_dict(checkpoint["model_state_dict"], strict=True)
         else:
-            model.load_state_dict(checkpoint, strict=False)
+            model.load_state_dict(checkpoint, strict=True)
         return model.eval()
 
 
