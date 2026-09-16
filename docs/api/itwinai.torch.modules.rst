@@ -47,6 +47,51 @@ loggers
    :member-order: bysource
 
 
+model_hub.feature
+++++++++++++++++++
+.. automodule:: itwinai.model_hub.feature
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+model_hub.download
++++++++++++++++++++
+.. automodule:: itwinai.model_hub.download
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+model_hub.manifest
++++++++++++++++++++
+.. automodule:: itwinai.model_hub.manifest
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+model_hub.backends.base
+++++++++++++++++++++++++
+.. automodule:: itwinai.model_hub.backends.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+model_hub.backends.itwinai_hub
++++++++++++++++++++++++++++++++
+.. automodule:: itwinai.model_hub.backends.itwinai_hub
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
 models.mnist
 ++++++++++++
 .. automodule:: itwinai.torch.models.mnist
