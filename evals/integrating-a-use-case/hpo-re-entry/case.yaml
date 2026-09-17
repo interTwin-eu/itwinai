@@ -1,0 +1,63 @@
+schema_version: "1.1"
+name: hpo-re-entry
+description: >-
+  A working plugin asks for HPO. The skill must jump straight to Phase 4 step 4, leave
+  strategy at ddp, use TrainingConfiguration field names in the search space, and write no code.
+tags: [fast, re-entry]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+  prompt: |
+    This directory is my itwinai plugin. It already trains with DDP on our cluster and logs
+    to MLflow. Add hyperparameter optimization over the learning rate and the batch size.
+
+    There is no shell in this environment, so edit the files and tell me what to run.
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: integrating-a-use-case
+  - type: regex
+    name: strategy-stays-ddp
+    target: {source: file, path: config.yaml}
+    pattern: '^strategy:\s*ddp\b'
+    flags: m
+  - type: regex
+    name: no-ray-strategy
+    target: {source: file, path: config.yaml}
+    pattern: 'strategy:\s*[''"]?ray'
+    flags: i
+    match: not_contains
+  - type: regex
+    name: tunes-optim-lr
+    target: {source: file, path: config.yaml}
+    pattern: 'optim_lr:\s*(\{\s*type:|\n\s+type:)'
+  - type: regex
+    name: tunes-batch-size
+    target: {source: file, path: config.yaml}
+    pattern: 'batch_size:\s*(\{\s*type:|\n\s+type:)'
+  - type: regex
+    name: storage-path-absolute
+    target: {source: file, path: config.yaml}
+    pattern: 'storage_path:\s*[''"]?\$\{itwinai\.cwd:\}'
+  - type: regex
+    name: ray-cluster-requested
+    target: {source: file, path: config.yaml}
+    pattern: 'use_ray:\s*true'
+  - type: tool_used
+    name: no-python-written
+    tool: Write
+    input_match: '"file_path"\s*:\s*"[^"]*\.py"'
+    min: 0
+    max: 0
+    arm: both
+  - type: tool_used
+    name: no-python-edited
+    tool: Edit
+    input_match: '"file_path"\s*:\s*"[^"]*\.py"'
+    min: 0
+    max: 0
+    arm: both

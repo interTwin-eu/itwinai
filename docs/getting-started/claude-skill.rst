@@ -86,10 +86,10 @@ input back out of MLflow, so the logger must exist before profiling is enabled, 
 active during the scaling test. Enabling them out of order produces an empty report and no error
 message. See :doc:`../how-it-works/scalability-report/scalability_report`.
 
-**Most use cases do not need a custom trainer.** Of the plugins published so far, several supply
-only a ``DataGetter`` and use the stock trainer. The skill defaults to that and only subclasses
-:class:`~itwinai.torch.trainer.TorchTrainer` when the loss, optimizer or training step genuinely
-requires it.
+**Extend the trainer, do not replace it.** Several published plugins supply only a
+``DataGetter`` and use the stock trainer, so the skill starts there. When the loss, optimizer or
+training step differs, it subclasses :class:`~itwinai.torch.trainer.TorchTrainer` and overrides
+the narrowest method, instead of writing a training loop from scratch.
 
 Scope
 -----

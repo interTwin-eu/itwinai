@@ -1,0 +1,46 @@
+schema_version: "1.1"
+name: empty-report-diagnosis
+description: >-
+  The scaffold turns off measure_gpu_data and drops log_on_workers from a working plugin. The
+  skill must walk the logging and profiling chain back to config instead of blaming the plots.
+tags: [fast, troubleshooting]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+  prompt: |
+    I ran the scaling test for the itwinai plugin in this directory on 1, 2 and 4 nodes.
+    Every job finished, but the GPU utilisation and power plots produced by
+    `itwinai generate-scalability-report` are empty. Find out why and fix it.
+
+    There is no shell in this environment.
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: integrating-a-use-case
+  - type: regex
+    name: gpu-data-measured
+    target: {source: file, path: config.yaml}
+    pattern: 'measure_gpu_data:\s*true'
+  - type: regex
+    name: logs-on-all-workers
+    target: {source: file, path: config.yaml}
+    pattern: 'log_on_workers:\s*-1'
+  - type: regex
+    name: mlflow-logger-kept
+    target: {source: file, path: config.yaml}
+    pattern: '_target_:\s*itwinai\.loggers\.MLFlowLogger'
+  - type: llm
+    name: diagnosis
+    criteria: |
+      1. Names measure_gpu_data being false as the reason the GPU plots are empty.
+      2. Explains that the MLflow logger defaults to logging from rank 0 only, so
+         log_on_workers must be -1 for every worker's GPU data to reach the report.
+      3. Says the scaling-test jobs must be submitted again before regenerating the report,
+         because the runs that already finished do not contain the data.
+      4. Does not attribute the problem to the plotting code, the cluster or the report
+         command itself.
+      Pass only if all four hold.

@@ -1,0 +1,33 @@
+schema_version: "1.1"
+name: should-not-trigger
+description: >-
+  A plain PyTorch change with no mention of itwinai. The skill must stay out of it and nothing
+  resembling a plugin may appear.
+tags: [fast, negative]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+  prompt: |
+    Add a linear learning-rate warmup over the first 5 epochs to train.py.
+
+    There is no shell in this environment.
+graders:
+  - type: tool_used
+    name: skill-not-fired
+    tool: Skill
+    input_match: integrating-a-use-case
+    min: 0
+    max: 0
+    arm: both
+  - type: file_exists
+    name: no-plugin-created
+    path: src/**
+    exists: false
+  - type: regex
+    name: warmup-added
+    target: {source: file, path: train.py}
+    pattern: 'warmup|LinearLR|LambdaLR|SequentialLR'
+    flags: i
