@@ -31,15 +31,15 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = REPO_ROOT / ".claude-plugin"
 SKILL_DIR = REPO_ROOT / "skills" / "integrating-a-use-case"
-EVALS_DIR = REPO_ROOT / "evals" / "integrating-a-use-case"
+EVALS_DIR = REPO_ROOT / "tests" / "skill_evals" / "integrating-a-use-case"
 FNO_FIXTURE = EVALS_DIR / "fixtures" / "fno-plugin"
 FNO_TUTORIAL = REPO_ROOT / "tutorials" / "claude-skill" / "fno-darcy" / "train.py"
 TUTORIAL_DOC = (
     REPO_ROOT / "docs" / "tutorials" / "claude-skill" / "integrate-a-new-use-case.rst"
 )
 
-# env-files/torch/skinny.Dockerfile copies the plugin, the skill and the evals into the test
-# container, but not docs/. Anything else missing means a partial source tree.
+# env-files/torch/skinny.Dockerfile copies the plugin and the skill into the test container,
+# next to tests/, but not docs/. Anything else missing means a partial source tree.
 pytestmark = pytest.mark.skipif(
     not (PLUGIN_DIR.is_dir() and SKILL_DIR.is_dir()),
     reason="Claude plugin files are not present (running against a partial source tree)",

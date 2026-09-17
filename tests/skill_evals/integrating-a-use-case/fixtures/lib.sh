@@ -3,7 +3,7 @@
 # workspace as the working directory, and with HOME and TMPDIR pointing inside the sandbox.
 
 FIXTURES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$FIXTURES/../../.." && pwd)"
+REPO_ROOT="$(cd "$FIXTURES/../../../.." && pwd)"
 
 copy_plugin_template() {
     local tmp

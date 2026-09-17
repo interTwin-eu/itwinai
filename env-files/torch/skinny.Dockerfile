@@ -70,7 +70,6 @@ COPY use-cases use-cases
 # Checked by tests/test_claude_plugin.py
 COPY .claude-plugin .claude-plugin
 COPY skills skills
-COPY evals evals
 COPY tutorials/claude-skill tutorials/claude-skill
 # This is needed to override the default venv path used by functional
 # tests for torch-based use cases (under ./use-cases)
