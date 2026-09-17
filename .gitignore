@@ -228,4 +228,4 @@ py_spy_outputs/
 py-spy-outputs/
 
 # Skill eval results
-evals/results/
+tests/skill_evals/results/
