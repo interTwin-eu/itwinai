@@ -164,8 +164,9 @@ The gates above, as one list. Rungs 1-4 always run; rung 5 is opt-in.
 
 ## Never
 
-- Never write a custom trainer because it feels more thorough. Six of the nine plugins in the
-  wild need one; three do not.
+- Never write a training loop from scratch. When the stock trainer does not fit, subclass
+  `TorchTrainer` and override the narrowest method that covers the difference: the base class
+  is what keeps distributed training, logging and profiling working.
 - Never copy field lists out of a reference file into config without reading the owning class.
 - Never submit a multi-node job without asking.
 - Never claim a gate passed without running it.
