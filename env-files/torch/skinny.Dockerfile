@@ -67,6 +67,10 @@ COPY tests tests
 
 # This is here because the skinny container could be used to run PR tests
 COPY use-cases use-cases
+# Checked by tests/test_claude_plugin.py
+COPY .claude-plugin .claude-plugin
+COPY skills skills
+COPY tutorials/claude-skill tutorials/claude-skill
 # This is needed to override the default venv path used by functional
 # tests for torch-based use cases (under ./use-cases)
 ENV TORCH_ENV="/app/.venv"

@@ -26,6 +26,9 @@ pl-training.yml
 *slurm-scripts/
 *.json
 *.JSON
+# ...but the Claude Code plugin manifests must be committed: they are what makes this
+# repository installable as a plugin marketplace.
+!.claude-plugin/*.json
 core
 
 # Use cases files
@@ -223,3 +226,6 @@ cython_debug/
 # py-spy profiling output
 py_spy_outputs/
 py-spy-outputs/
+
+# Skill eval results
+tests/skill_evals/results/
