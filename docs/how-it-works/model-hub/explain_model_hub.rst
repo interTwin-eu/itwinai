@@ -51,6 +51,14 @@ The timing of the upload is controlled by a ``mode`` setting:
     The final `published: true` ensures that the pushed model is readily visible to all users
     on the AI Model Hub.
 
+When ``backend: ai-model-hub``, uploading doesn't talk to the Hub directly -- it shells out
+to ``itwinai upload-model-to-hub <checkpoint_dir>`` as a subprocess, which downloads
+``upload_model.py`` from the `RI-SCALE example repo
+<https://github.com/RI-SCALE/ai-model-hub-example>`_ (unless ``--upload-script`` is given)
+and resolves credentials with priority: explicit CLI argument > environment variable >
+``.env`` file in the current working directory, using ``HYPHA_SERVER_URL`` and
+``HYPHA_TOKEN``.
+
 Pulling a model
 ---------------
 

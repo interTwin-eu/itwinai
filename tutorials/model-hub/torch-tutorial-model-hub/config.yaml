@@ -11,7 +11,7 @@ model_hub:
   backend: ai-model-hub
   mode: auto # or "online" / "deferred" -- see Model Hub docs page
   manifest:
-    id: checkpoint-itwinai-tutorial
+    id: checkpoint-itwinai-tutorial-mock
     name: Sanity Check itwinai Tutorial
     description: >
       Small 3-layer CNN trained on synthetic noise to demonstrate itwinai integration with
