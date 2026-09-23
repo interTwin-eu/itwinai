@@ -213,8 +213,13 @@ class TorchPredictor(TorchTrainer, Predictor):
         if model is not None:
             # Overrides existing "internal" model
             self.model = model
-        elif isinstance(self.model, TorchModelLoader):
-            self.model = self.model()
+        elif isinstance(self.model, ModelLoader):
+            loader = self.model
+            if self.strategy.is_main_worker:
+                self.model = loader()
+            self.strategy.barrier()
+            if not self.strategy.is_main_worker:
+                self.model = loader()
 
         self.create_dataloaders(inference_dataset=inference_dataset)
 
@@ -271,6 +276,8 @@ class TorchPredictor(TorchTrainer, Predictor):
         """Post-process the predictions of the torch model (e.g., apply
         threshold in case of multi-label classifier).
         """
+
+        return batch
 
 
 class MulticlassTorchPredictor(TorchPredictor):
