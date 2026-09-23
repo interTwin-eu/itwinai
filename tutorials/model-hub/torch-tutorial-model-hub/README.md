@@ -11,16 +11,16 @@ detailed documentation in [Accessing models from the RI-SCALE Model Hub](../../.
 
 ## Setup
 
-1. Install `torch` and `modelhub` extras:
+- Install `torch` and `modelhub` extras:
 
 ```bash
 uv pip install -e ".[torch,dev,modelhub]" --no-cache-dir
 ```
 
-2. `cd` into this tutorial's directory (`tutorials/model-hub/torch-tutorial-model-hub`) --
+- `cd` into this tutorial's directory (`tutorials/model-hub/torch-tutorial-model-hub`) --
 `itwinai exec-pipeline` looks for `config.yaml` and `.env` in the current directory.
 
-3. Create a `.env` file in this directory with `HYPHA_SERVER_URL` and `HYPHA_TOKEN` (see
+- Create a `.env` file in this directory with `HYPHA_SERVER_URL` and `HYPHA_TOKEN` (see
 [this page](https://github.com/RI-SCALE/ai-model-hub-example/blob/main/.env.example) for how to
 obtain them). Both push and pull need internet access; push additionally needs to reach GitHub
 to download its upload script.
