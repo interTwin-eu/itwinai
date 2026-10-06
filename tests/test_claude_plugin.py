@@ -91,6 +91,15 @@ def test_skill_declares_target_version():
     assert match.group(1) == _package_version()
 
 
+def test_pinned_release_tags_match_package():
+    """references/slurm.md pins pre_exec_file to a release tag so it cannot drift from the
+    itwinai the skill targets. Bump it with the version."""
+    text = "\n".join(p.read_text() for p in SKILL_DIR.rglob("*.md"))
+    pinned = set(re.findall(r"refs/tags/v(\d+\.\d+\.\d+)", text))
+    assert pinned, "the skill must pin raw.githubusercontent URLs to a release tag"
+    assert pinned == {_package_version()}, f"stale pinned tags: {sorted(pinned)}"
+
+
 def test_skill_frontmatter_is_well_formed():
     text = (SKILL_DIR / "SKILL.md").read_text()
     match = re.match(r"^---\n(.*?)\n---\n", text, re.S)

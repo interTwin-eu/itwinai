@@ -96,6 +96,19 @@ A `tracking_uri` that resolves on the login node may be unreachable from compute
 `null` to use the filesystem backend under `mllogs/mlflow`, and inspect afterwards with
 `itwinai mlflow-ui --path mllogs/mlflow`.
 
+## No GPU node, or `sbatch: command not found`
+
+Gate 4 and Gate 5 cannot run on this machine, and that is not a failure of the plugin. Finish
+Phase 3, say which gates were not run and why, and stop (Rule 2). Write `slurm_config` only if
+the user asks for it, and label it unverified: the account, the partition and the
+`pre_exec_file` modules are site-specific and cannot be checked from here.
+
+## `Lmod has detected the following error`, or a module is not found
+
+The `pre_exec_file` was written for a different cluster. Module names differ on every system.
+Take them from the site's documentation, from `module avail`, or from a script that already
+works there, and never guess. See `references/slurm.md`.
+
 ## Still stuck
 
 `itwinai sanity-check --torch` verifies the installation itself.

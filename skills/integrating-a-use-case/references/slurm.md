@@ -35,7 +35,7 @@ slurm_config:
   submit_job: false
   save_script: true
 
-  pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/src/itwinai/slurm/system-base-scripts/vega_pre_exec.sh
+  pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/tags/v0.4.2/src/itwinai/slurm/system-base-scripts/vega_pre_exec.sh
 
   training_cmd: >
     {itwinai_launcher} exec-pipeline
@@ -86,6 +86,19 @@ itwinai ships base scripts for JUWELS, LUMI and Vega under
 `src/itwinai/slurm/system-base-scripts/`, usable by path or by URL. For any other system, copy
 the closest one and adapt it. This file, the account and the partition are the only parts that
 should change when moving a working plugin to a different cluster.
+
+The URL above is pinned to a release tag on purpose. `refs/heads/main` would drift away from the
+itwinai this skill targets, and the module stanza is exactly where that hurts. Pin it to the tag
+matching the installed itwinai.
+
+**Never invent module names.** The `ml` lines in these scripts are site-specific, and the same
+software has different names on every cluster: Vega loads
+`CUDA/12.6.0`, `NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0`, `Python/3.12.3-GCCcore-13.3.0`, while
+JUWELS loads `Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA`. Guessing produces a job
+that dies in the first seconds with a module error. Take the names from the system's own
+documentation, from `module avail`, or from a script that already works on that machine, and ask
+the user if neither is available. `pre_exec_command` takes a one-liner when a whole file is
+overkill; read both fields on `SlurmScriptConfiguration`.
 
 ## `mode`
 

@@ -164,3 +164,19 @@ tf-2.13-cpu: env-files/tensorflow/tensorflow-2.13-cpu.yml
 #   		HOROVOD_GPU_OPERATIONS=NCCL \
 #   		HOROVOD_WITH_TENSORFLOW=1 \
 # 		bash -c '.venv-tf/bin/pip install --no-cache-dir horovod[tensorflow,keras]'
+
+# Propagate the version in pyproject.toml to every place that must agree with it:
+# the Claude plugin manifests, the version SKILL.md targets, and the release tag the
+# skill pins pre_exec_file to. tests/test_claude_plugin.py fails if they diverge.
+# Usage: make bump-version VERSION=0.4.3
+bump-version:
+	@test -n "$(VERSION)" || { echo "usage: make bump-version VERSION=X.Y.Z"; exit 1; }
+	@old=$$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1); \
+	echo "itwinai $$old -> $(VERSION)"; \
+	sed -i "s|^version = \"$$old\"|version = \"$(VERSION)\"|" pyproject.toml; \
+	sed -i "s|\"version\": \"$$old\"|\"version\": \"$(VERSION)\"|g" \
+		.claude-plugin/plugin.json .claude-plugin/marketplace.json; \
+	sed -i "s|targets itwinai $$old|targets itwinai $(VERSION)|" \
+		skills/integrating-a-use-case/SKILL.md; \
+	sed -i "s|refs/tags/v$$old|refs/tags/v$(VERSION)|g" \
+		skills/integrating-a-use-case/references/slurm.md

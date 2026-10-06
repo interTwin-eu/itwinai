@@ -175,6 +175,8 @@ them until it produces a broken config. Whenever you change any of the following
   `references/profiling-and-scalability.md`
 - `itwinai/cli.py` — command names, options, or OmegaConf resolvers → whichever reference
   mentions them, and `docs/getting-started/claude-skill.rst`
+- `itwinai/model_hub/` — `ModelHubFeature`, the manifest writer or the upload command →
+  `references/model-hub.md`
 - `itwinai/pipeline.py` — pipeline semantics → `references/pipeline-config.md`
 
 Rules when editing the skill:
@@ -183,7 +185,9 @@ Rules when editing the skill:
    together with the package version in `pyproject.toml`. The skill compares its own version
    against the installed itwinai to warn users about skew, so a stale version string silently
    disables that check.
-2. **Update the version stated in `SKILL.md`** (the "This skill targets itwinai X.Y.Z" line).
+2. **Update the version stated in `SKILL.md`** (the "This skill targets itwinai X.Y.Z" line)
+   and the `refs/tags/vX.Y.Z` URL in `references/slurm.md`, which pins `pre_exec_file` to a
+   release so it cannot drift from the targeted itwinai.
 3. **Do not paste field lists into reference files.** References name the owning class and
    instruct reading it from the installed itwinai, precisely so that most changes here do not
    require a skill edit. Preserve that property — add reasoning, not copies of the source.

@@ -10,6 +10,10 @@ later the SLURM block. `itwinai exec-pipeline` reads it through Hydra and OmegaC
 run_name: fno-darcy
 strategy: ddp
 
+# Groups runs in MLflow. Declare it here even before Phase 4, so that adding the logger is a
+# two-line change and every run of this plugin lands in the same experiment.
+experiment_name: FNO-Darcy
+
 # Hyperparameters, referenced below by interpolation
 epochs: 20
 batch_size: 32

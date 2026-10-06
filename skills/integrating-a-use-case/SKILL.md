@@ -22,6 +22,7 @@ Do not restart from Phase 0. Jump straight to what you need.
 | Add profiling / GPU monitoring | Phase 4, step 3 |
 | Add hyperparameter optimization | Phase 4, step 4 |
 | Produce a scalability report | Phase 5 |
+| Publish the trained model to the Model Hub | `references/model-hub.md` |
 | Port to another HPC system | `references/slurm.md` |
 | Something failed | `references/troubleshooting.md` |
 
@@ -29,15 +30,20 @@ Do not restart from Phase 0. Jump straight to what you need.
 
 1. **Gates are hard.** Each phase ends with a gate. If it fails, go to
    `references/troubleshooting.md` and fix it. Never advance past a failing gate, and never
-   report a phase complete without running its gate command and seeing it pass.
-2. **Read the source, don't trust this skill for field values.** Every reference names the
+   report a phase complete without running its gate command and seeing it pass. A gate the
+   machine cannot run is not a failing gate: stop there and say so, see Rule 2.
+2. **Stop where the hardware stops.** Gates 1 to 3 run anywhere, including a laptop. Gate 4
+   needs a GPU node and SLURM, Gate 5 needs several. Without them, finish Phase 3, report
+   which gates could not be run and why, and stop. Write the later config only if the user asks
+   for it, and label it unverified. Never present an unrun gate as passed.
+3. **Read the source, don't trust this skill for field values.** Every reference names the
    class that owns a set of fields. Read that class from the *installed* itwinai before
    generating config. Users are often on a skill version older than their itwinai.
-3. **Load references lazily.** Read a reference file when you reach the step that needs it, not
+4. **Load references lazily.** Read a reference file when you reach the step that needs it, not
    before.
-4. **Change behaviour and structure in separate steps.** Porting must preserve the science. If
+5. **Change behaviour and structure in separate steps.** Porting must preserve the science. If
    the ported code trains differently from the original, that is a bug, not an improvement.
-5. **Ask before consuming allocation.** Any multi-node job, and anything in Phase 5, needs the
+6. **Ask before consuming allocation.** Any multi-node job, and anything in Phase 5, needs the
    user's explicit go-ahead.
 
 ## Phase 0 - Assess
@@ -48,8 +54,8 @@ Do not restart from Phase 0. Jump straight to what you need.
 itwinai --version
 ```
 
-If it differs from 0.4.2 above, say so plainly and recommend the user refresh this plugin
-(`/plugin` menu) before continuing. Then continue anyway, obeying Rule 2 more strictly.
+If it differs from the version stated above, say so plainly and recommend the user refresh this
+plugin (`/plugin` menu) before continuing. Then continue anyway, obeying Rule 3 more strictly.
 
 **Inventory the source code.** Read the training script and write a short table recording where
 each of these lives, or "none":
@@ -102,7 +108,16 @@ Move the science under `src/itwinai/plugins/<name>/`. Keep the original script a
 Phase 3's gate passes, so you can diff behaviour against it.
 
 **Gate 2:** the import above still succeeds, and no module defines a class whose name collides
-with an itwinai class it also imports.
+with an itwinai class it also imports. Check the second half, do not eyeball it:
+
+```bash
+python -c "import itwinai.plugins.<name>; print('ok')"
+grep -rhoE "^class [A-Za-z_][A-Za-z_0-9]*" src/itwinai/plugins/<name>/ | sort -u
+grep -rhoE "from itwinai[A-Za-z_.0-9]* import .*" src/itwinai/plugins/<name>/ | sort -u
+```
+
+No name from the first list may appear in the second. An overlap means your class shadows the
+itwinai class of the same name in that module: rename yours after the science (`FNOTrainer`).
 
 ## Phase 3 - Wire
 
@@ -128,8 +143,8 @@ produces an empty report and no error message.
 
 1. **Logging** - `references/logging.md`. Add `LoggersCollection` with `ConsoleLogger` and
    `MLFlowLogger`. Re-run Gate 3 and confirm metrics appear under `mllogs/mlflow`.
-2. **Distributed** - `references/distributed.md`, then `references/slurm.md`. Add
-   `slurm_config.yaml` and submit a single-node, multi-GPU job.
+2. **Distributed** - `references/distributed.md`, then `references/slurm.md`. Add the
+   `slurm_config` block to `config.yaml` and submit a single-node, multi-GPU job.
 3. **Profiling** - `references/profiling-and-scalability.md`. Enable `measure_epoch_time` and
    `measure_gpu_data`.
 4. **HPO** - `references/hpo.md`. Add the `ray_*` blocks and a search space. Leave `strategy`
@@ -137,6 +152,14 @@ produces an empty report and no error message.
 
 **Gate 4:** a single-node multi-GPU SLURM job completes, and MLflow contains a run with epoch
 times and GPU utilisation recorded.
+
+**No GPU node or no SLURM?** `sinfo` or `sbatch --version` failing is the signal. Then Phase 3
+is the end of the road here, by Rule 2: step 1 of this phase is still verifiable through Gate 3,
+steps 2 to 4 are not. Report the plugin as working up to Gate 3, list Gate 4 as not run and
+why, and offer to write the remaining config as unverified for someone with cluster access.
+
+**Publishing the model** is not part of this chain and needs no cluster: it reads checkpoints,
+not MLflow. Only when the user asks, read `references/model-hub.md`.
 
 ## Phase 5 - Scale (opt-in)
 
@@ -154,7 +177,8 @@ go back to step 1, do not reinterpret the plots.
 
 ## Verification ladder
 
-The gates above, as one list. Rungs 1-4 always run; rung 5 is opt-in.
+The gates above, as one list. Rungs 1-3 run anywhere. Rung 4 needs a GPU node and SLURM, rung 5
+needs several nodes and is opt-in; where they cannot run, stop and say so (Rule 2).
 
 1. Plugin installs and imports (Gate 1, Gate 2)
 2. `itwinai sanity-check --torch` passes

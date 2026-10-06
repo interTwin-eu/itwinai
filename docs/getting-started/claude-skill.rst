@@ -49,35 +49,32 @@ What it does
 The skill follows a fixed sequence, and each phase ends with a check that must pass before the
 next begins.
 
-.. list-table::
-   :header-rows: 1
-   :widths: 12 45 43
+**Phase 0, Assess.** Reads your training code, records where the model, optimizer, loop, data
+and hyperparameters live, and decides whether a custom trainer is needed at all.
+*Check:* inventory complete, approach chosen.
 
-   * - Phase
-     - Does
-     - Check
-   * - 0. Assess
-     - Reads your training code, records where the model, optimizer, loop, data and
-       hyperparameters live, and decides whether a custom trainer is needed at all
-     - Inventory complete, approach chosen
-   * - 1. Scaffold
-     - Creates the plugin repository from
-       `itwinai-plugin-template <https://github.com/interTwin-eu/itwinai-plugin-template>`__
-       and configures packaging
-     - Plugin installs and imports
-   * - 2. Port
-     - Moves the science under ``itwinai.plugins.<name>``, as either pipeline components or a
-       :class:`~itwinai.torch.trainer.TorchTrainer` subclass
-     - Import still succeeds, behaviour preserved
-   * - 3. Wire
-     - Writes ``config.yaml`` describing the pipeline
-     - One-epoch non-distributed run, loss decreases
-   * - 4. Capabilities
-     - Adds logging, distributed training, profiling and HPO, **in that order**
-     - Single-node multi-GPU SLURM job, metrics in MLflow
-   * - 5. Scale
-     - Runs a scaling test and generates a scalability report — only on explicit request
-     - Report contains data
+**Phase 1, Scaffold.** Creates the plugin repository from
+`itwinai-plugin-template <https://github.com/interTwin-eu/itwinai-plugin-template>`__ and
+configures packaging.
+*Check:* the plugin installs and imports.
+
+**Phase 2, Port.** Moves the science under ``itwinai.plugins.<name>``, as either pipeline
+components or a :class:`~itwinai.torch.trainer.TorchTrainer` subclass.
+*Check:* the import still succeeds and no class shadows an itwinai name.
+
+**Phase 3, Wire.** Writes ``config.yaml`` describing the pipeline.
+*Check:* a one-epoch non-distributed run, with a loss matching the original script.
+
+**Phase 4, Capabilities.** Adds logging, distributed training, profiling and HPO, **in that
+order**.
+*Check:* a single-node multi-GPU SLURM job, with metrics in MLflow.
+
+**Phase 5, Scale.** Runs a scaling test and generates a scalability report, only on explicit
+request.
+*Check:* the report contains data.
+
+Phases 0 to 3 run anywhere, a laptop included. Phases 4 and 5 need a GPU node and SLURM, so
+without them the skill stops after phase 3 and says which checks it could not run.
 
 Two design points are worth knowing even if you never use the skill.
 

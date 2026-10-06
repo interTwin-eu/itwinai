@@ -1,7 +1,7 @@
 {
   "name": "itwinai",
   "owner": {
-    "name": "interTwin - CERN",
+    "name": "interTwin - CERN and Forschungszentrum Jülich (FZJ)",
     "email": "matteo.bunino@cern.ch"
   },
   "metadata": {
@@ -15,7 +15,7 @@
       "description": "Integrate scientific training code into itwinai: distributed training, HPO, logging, profiling and scalability reports",
       "version": "0.4.2",
       "author": {
-        "name": "interTwin - CERN",
+        "name": "interTwin - CERN and Forschungszentrum Jülich (FZJ)",
         "email": "matteo.bunino@cern.ch"
       }
     }
