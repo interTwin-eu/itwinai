@@ -265,7 +265,10 @@ class _ConfigChecker:
         from itwinai.torch.trainer import TorchTrainer
 
         self.trainer_kwargs = _accepted_kwargs(TorchTrainer)
-        self.config_fields = set(TrainingConfiguration.model_fields)
+        # TrainingConfiguration sets extra="allow", and the trainer reads some settings from
+        # there rather than declaring them (`getattr(self.config, "model_hub", {})`). Extras
+        # the skill uses on purpose are listed here, so a typo in any other key still fails.
+        self.config_fields = set(TrainingConfiguration.model_fields) | {"model_hub"}
         self.problems: list[str] = []
 
     def check(self, block: dict) -> list[str]:
