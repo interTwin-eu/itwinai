@@ -29,6 +29,7 @@ pl-training.yml
 # ...but the Claude Code plugin manifests must be committed: they are what makes this
 # repository installable as a plugin marketplace.
 !.claude-plugin/*.json
+!claude-plugin/**/.claude-plugin/*.json
 core
 
 # Use cases files
@@ -228,4 +229,4 @@ py_spy_outputs/
 py-spy-outputs/
 
 # Skill eval results
-tests/skill_evals/results/
+claude-plugin/itwinai/evals/results/

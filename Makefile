@@ -175,8 +175,8 @@ bump-version:
 	echo "itwinai $$old -> $(VERSION)"; \
 	sed -i "s|^version = \"$$old\"|version = \"$(VERSION)\"|" pyproject.toml; \
 	sed -i "s|\"version\": \"$$old\"|\"version\": \"$(VERSION)\"|g" \
-		.claude-plugin/plugin.json .claude-plugin/marketplace.json; \
+		claude-plugin/itwinai/.claude-plugin/plugin.json .claude-plugin/marketplace.json; \
 	sed -i "s|targets itwinai $$old|targets itwinai $(VERSION)|" \
-		skills/integrating-a-use-case/SKILL.md; \
+		claude-plugin/itwinai/skills/integrating-a-use-case/SKILL.md; \
 	sed -i "s|refs/tags/v$$old|refs/tags/v$(VERSION)|g" \
-		skills/integrating-a-use-case/references/slurm.md
+		claude-plugin/itwinai/skills/integrating-a-use-case/references/slurm.md

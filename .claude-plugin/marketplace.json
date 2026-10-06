@@ -1,7 +1,7 @@
 {
   "name": "itwinai",
   "owner": {
-    "name": "interTwin - CERN and Forschungszentrum Jülich (FZJ)",
+    "name": "interTwin - CERN and Forschungszentrum J\u00fclich (FZJ)",
     "email": "matteo.bunino@cern.ch"
   },
   "metadata": {
@@ -11,11 +11,11 @@
   "plugins": [
     {
       "name": "itwinai",
-      "source": "./",
+      "source": "./claude-plugin/itwinai",
       "description": "Integrate scientific training code into itwinai: distributed training, HPO, logging, profiling and scalability reports",
       "version": "0.4.2",
       "author": {
-        "name": "interTwin - CERN and Forschungszentrum Jülich (FZJ)",
+        "name": "interTwin - CERN and Forschungszentrum J\u00fclich (FZJ)",
         "email": "matteo.bunino@cern.ch"
       }
     }

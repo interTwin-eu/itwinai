@@ -44,11 +44,11 @@ itwinai upload-model-to-hub <checkpoint-dir>
 
 The directory must contain the `manifest.yaml` the trainer wrote, and the command needs the hub
 URL and an API token. Pass them through `--env-file`, or export them, and keep the token out of
-`config.yaml` and out of git.
+`config.yaml` and out of Git.
 
 ## Consuming a published model
 
-`ModelHubModelLoader` (same module) pulls a model by its Model Hub id for inference, instead of
+`ModelHubModelLoader` (same module) pulls a model by its Model Hub ID for inference, instead of
 a local checkpoint path. Use it in an inference pipeline, not in the training one.
 
 ## Where to read more

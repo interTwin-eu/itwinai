@@ -148,17 +148,20 @@ Tests are organized by component type:
 5. Test with real use cases in `use-cases/` directory
 6. For HPC development, test on JSC systems using `make test-jsc`
 
-## Claude Code Skill (`skills/`)
+## Claude Code Skill (`claude-plugin/`)
 
 This repository doubles as a Claude Code plugin marketplace. `.claude-plugin/` declares the
-plugin and `skills/integrating-a-use-case/` contains a skill that walks scientists through
-turning their training code into an itwinai plugin, covering distributed training, logging,
-HPO, profiling and scalability reports.
+marketplace, and `claude-plugin/itwinai/` is the plugin itself: its own
+`.claude-plugin/plugin.json`, the skill under `skills/integrating-a-use-case/`, and the evals.
+The plugin is a subdirectory so that installing it does not copy the whole repository.
+
+The skill walks scientists through turning their training code into an itwinai plugin,
+covering distributed training, logging, HPO, profiling and scalability reports.
 
 **IMPORTANT — keep the skill in sync with the code.** The skill is documentation that users
 execute, and it is installed on their machines at a pinned version, so drift is invisible to
 them until it produces a broken config. Whenever you change any of the following, update
-`skills/integrating-a-use-case/` in the *same* pull request:
+`claude-plugin/itwinai/skills/integrating-a-use-case/` in the *same* pull request:
 
 - `itwinai/torch/trainer.py` — `TorchTrainer.__init__` arguments, overridable methods, or
   strategy resolution → `SKILL.md`, `references/porting-training-code.md`,
@@ -198,9 +201,10 @@ Testing the skill:
 - `tests/test_claude_plugin.py` checks that every command, class, source path, resolver and
   YAML key the skill, the tutorial and the eval fixture use still exists in itwinai. Run it
   after any change listed above; a failure names the stale reference.
-- `tests/skill_evals/integrating-a-use-case/` holds behavioural evals for
-  `claude plugin eval`, see `tests/skill_evals/README.md`. Run the `fast` tag after changing
-  the skill's workflow or decision rules. Nothing under `skills/` can hold them: the eval
-  runner refuses a directory inside a plugin component.
-- `tests/skill_evals/integrating-a-use-case/fixtures/fno-plugin/` is the tutorial's finished
-  plugin. Keep it in step with `docs/tutorials/claude-skill/integrate-a-new-use-case.rst`.
+- `claude-plugin/itwinai/evals/` holds behavioural evals for `claude plugin eval`, documented
+  in `claude-plugin/itwinai/evals/README.md`. They need a model, so they are not in CI: run
+  the `fast` tag by hand after changing the skill's workflow or decision rules. They cannot
+  live under `skills/`, because the eval runner refuses a directory inside a plugin component.
+- `claude-plugin/itwinai/evals/integrating-a-use-case/fixtures/fno-plugin/` is the tutorial's
+  finished plugin. Keep it in step with
+  `docs/tutorials/claude-skill/integrate-a-new-use-case.rst`.

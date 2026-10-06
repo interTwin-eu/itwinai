@@ -29,17 +29,21 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_DIR = REPO_ROOT / ".claude-plugin"
-SKILL_DIR = REPO_ROOT / "skills" / "integrating-a-use-case"
-EVALS_DIR = REPO_ROOT / "tests" / "skill_evals" / "integrating-a-use-case"
+# The marketplace lives at the repository root and points at the plugin, which is a
+# subdirectory, so that installing it does not copy the whole repository.
+MARKETPLACE_DIR = REPO_ROOT / ".claude-plugin"
+PLUGIN_ROOT = REPO_ROOT / "claude-plugin" / "itwinai"
+PLUGIN_DIR = PLUGIN_ROOT / ".claude-plugin"
+SKILL_DIR = PLUGIN_ROOT / "skills" / "integrating-a-use-case"
+EVALS_DIR = PLUGIN_ROOT / "evals" / "integrating-a-use-case"
 FNO_FIXTURE = EVALS_DIR / "fixtures" / "fno-plugin"
 FNO_TUTORIAL = REPO_ROOT / "tutorials" / "claude-skill" / "fno-darcy" / "train.py"
 TUTORIAL_DOC = (
     REPO_ROOT / "docs" / "tutorials" / "claude-skill" / "integrate-a-new-use-case.rst"
 )
 
-# env-files/torch/skinny.Dockerfile copies the plugin and the skill into the test container,
-# next to tests/, but not docs/. Anything else missing means a partial source tree.
+# env-files/torch/skinny.Dockerfile copies the marketplace and the plugin into the test
+# container, but not docs/. Anything else missing means a partial source tree.
 pytestmark = pytest.mark.skipif(
     not (PLUGIN_DIR.is_dir() and SKILL_DIR.is_dir()),
     reason="Claude plugin files are not present (running against a partial source tree)",
@@ -59,12 +63,12 @@ def plugin_manifest() -> dict:
 
 @pytest.fixture
 def marketplace_manifest() -> dict:
-    return json.loads((PLUGIN_DIR / "marketplace.json").read_text())
+    return json.loads((MARKETPLACE_DIR / "marketplace.json").read_text())
 
 
 def test_manifests_exist():
     assert (PLUGIN_DIR / "plugin.json").is_file()
-    assert (PLUGIN_DIR / "marketplace.json").is_file()
+    assert (MARKETPLACE_DIR / "marketplace.json").is_file()
 
 
 def test_marketplace_declares_the_plugin(marketplace_manifest):

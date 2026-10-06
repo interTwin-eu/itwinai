@@ -39,7 +39,7 @@ docs
 # Markdown
 **/*.md
 # The skill is Markdown, and tests/test_claude_plugin.py checks it
-!skills/**/*.md
+!claude-plugin/**/*.md
 
 # Custom envs
 **/.venv*
