@@ -147,3 +147,64 @@ Tests are organized by component type:
 4. Use `ruff` for code formatting and linting
 5. Test with real use cases in `use-cases/` directory
 6. For HPC development, test on JSC systems using `make test-jsc`
+
+## Claude Code Skill (`claude-plugin/`)
+
+This repository doubles as a Claude Code plugin marketplace. `.claude-plugin/` declares the
+marketplace, and `claude-plugin/itwinai/` is the plugin itself: its own
+`.claude-plugin/plugin.json`, the skill under `skills/integrating-a-use-case/`, and the evals.
+The plugin is a subdirectory so that installing it does not copy the whole repository.
+
+The skill walks scientists through turning their training code into an itwinai plugin,
+covering distributed training, logging, HPO, profiling and scalability reports.
+
+**IMPORTANT — keep the skill in sync with the code.** The skill is documentation that users
+execute, and it is installed on their machines at a pinned version, so drift is invisible to
+them until it produces a broken config. Whenever you change any of the following, update
+`claude-plugin/itwinai/skills/integrating-a-use-case/` in the *same* pull request:
+
+- `itwinai/torch/trainer.py` — `TorchTrainer.__init__` arguments, overridable methods, or
+  strategy resolution → `SKILL.md`, `references/porting-training-code.md`,
+  `references/distributed.md`
+- `itwinai/torch/config.py` — `TrainingConfiguration` fields, allowed losses or optimizers →
+  `references/porting-training-code.md`
+- `itwinai/components.py` — component base classes or their `execute()` signatures →
+  `references/porting-training-code.md`
+- `itwinai/loggers.py` — logger classes or their arguments → `references/logging.md`
+- `itwinai/slurm/configuration.py` — `SlurmScriptConfiguration` or `MLSlurmBuilderConfig`
+  fields → `references/slurm.md`
+- `itwinai/torch/tuning.py` or the Ray integration → `references/hpo.md`
+- `itwinai/scalability_report/` or the profiling flags →
+  `references/profiling-and-scalability.md`
+- `itwinai/cli.py` — command names, options, or OmegaConf resolvers → whichever reference
+  mentions them, and `docs/getting-started/claude-skill.rst`
+- `itwinai/model_hub/` — `ModelHubFeature`, the manifest writer or the upload command →
+  `references/model-hub.md`
+- `itwinai/pipeline.py` — pipeline semantics → `references/pipeline-config.md`
+
+Rules when editing the skill:
+
+1. **Bump `version` in both `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`**
+   together with the package version in `pyproject.toml`. The skill compares its own version
+   against the installed itwinai to warn users about skew, so a stale version string silently
+   disables that check.
+2. **Update the version stated in `SKILL.md`** (the "This skill targets itwinai X.Y.Z" line)
+   and the `refs/tags/vX.Y.Z` URL in `references/slurm.md`, which pins `pre_exec_file` to a
+   release so it cannot drift from the targeted itwinai.
+3. **Do not paste field lists into reference files.** References name the owning class and
+   instruct reading it from the installed itwinai, precisely so that most changes here do not
+   require a skill edit. Preserve that property — add reasoning, not copies of the source.
+4. If a change breaks a step of the workflow, fix `references/troubleshooting.md` too.
+
+Testing the skill:
+
+- `tests/test_claude_plugin.py` checks that every command, class, source path, resolver and
+  YAML key the skill, the tutorial and the eval fixture use still exists in itwinai. Run it
+  after any change listed above; a failure names the stale reference.
+- `claude-plugin/itwinai/evals/` holds behavioural evals for `claude plugin eval`, documented
+  in `claude-plugin/itwinai/evals/README.md`. They need a model, so they are not in CI: run
+  the `fast` tag by hand after changing the skill's workflow or decision rules. They cannot
+  live under `skills/`, because the eval runner refuses a directory inside a plugin component.
+- `claude-plugin/itwinai/evals/integrating-a-use-case/fixtures/fno-plugin/` is the tutorial's
+  finished plugin. Keep it in step with
+  `docs/tutorials/claude-skill/integrate-a-new-use-case.rst`.

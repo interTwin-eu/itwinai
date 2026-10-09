@@ -1,0 +1,69 @@
+schema_version: "1.1"
+name: custom-trainer-fork
+description: >-
+  train.py trains with a relative L2 loss that TrainingConfiguration does not offer. The skill
+  must extend TorchTrainer, override only create_model_loss_optimizer, and not shadow the name.
+tags: [fast, fork]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+  prompt: |
+    This directory is a fresh copy of itwinai-plugin-template and train.py is my training
+    script. Turn train.py into an itwinai plugin whose package is named `fno`, up to and
+    including the pipeline config.yaml in this directory.
+
+    There is no shell in this environment, so do not try to run anything. Write the files,
+    then tell me which commands to run to check the result.
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: integrating-a-use-case
+  - type: file_exists
+    name: package-created
+    path: src/itwinai/plugins/fno/__init__.py
+  - type: regex
+    name: package-listed-in-pyproject
+    target: {source: file, path: pyproject.toml}
+    pattern: 'itwinai\.plugins\.fno'
+  - type: regex
+    name: config-uses-plugin-trainer
+    target: {source: file, path: config.yaml}
+    pattern: '_target_:\s*itwinai\.plugins\.fno(\.\w+)*\.\w*Trainer\b'
+  - type: tool_used
+    name: extends-torchtrainer
+    tool: Write
+    input_match: 'class \w+\(\s*(itwinai\.torch\.trainer\.)?TorchTrainer\s*\)'
+    arm: both
+  - type: tool_used
+    name: does-not-shadow-torchtrainer
+    tool: Write
+    input_match: 'class TorchTrainer\b'
+    min: 0
+    max: 0
+    arm: both
+  - type: tool_used
+    name: overrides-create-model-loss-optimizer
+    tool: Write
+    input_match: 'def create_model_loss_optimizer\(\s*self'
+    arm: both
+  - type: tool_used
+    name: keeps-base-class-setup
+    tool: Write
+    input_match: 'super\(\)\.create_model_loss_optimizer\(\)'
+    arm: both
+  - type: tool_used
+    name: no-training-loop-override
+    tool: Write
+    input_match: 'def (train|train_epoch|train_step)\(\s*self'
+    min: 0
+    max: 0
+    arm: both
+  - type: tool_used
+    name: execute-is-monitored
+    tool: Write
+    input_match: '@monitor_exec'
+    arm: both

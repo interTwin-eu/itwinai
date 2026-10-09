@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fno-itwinai-plugin"
+version = "0.0.1"
+description = "Fourier Neural Operator surrogate for 2D Darcy flow"
+requires-python = ">=3.10"
+dependencies = ["itwinai[torch]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["itwinai.plugins.fno"]

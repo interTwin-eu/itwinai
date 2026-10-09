@@ -1,0 +1,65 @@
+# The FNO plugin from docs/tutorials/claude-skill/integrate-a-new-use-case.rst, as it stands
+# after Phase 4 steps 1-3: logging, distributed training and profiling, but no HPO yet.
+
+run_name: fno-darcy
+experiment_name: FNO-Darcy
+strategy: ddp
+
+epochs: 20
+batch_size: 16
+lr: 1e-3
+grid_size: 32
+n_train: 256
+modes: 12
+width: 32
+
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    dataloading_step:
+      _target_: itwinai.plugins.fno.data.DarcyDataGetter
+      n_train: ${n_train}
+      grid_size: ${grid_size}
+    training_step:
+      _target_: itwinai.plugins.fno.trainer.FNOTrainer
+      epochs: ${epochs}
+      run_name: ${run_name}
+      strategy: ${strategy}
+      measure_epoch_time: true
+      measure_gpu_data: true
+      model:
+        _target_: itwinai.plugins.fno.models.FNO2d
+        modes: ${modes}
+        width: ${width}
+      config:
+        batch_size: ${batch_size}
+        optimizer: adam
+        optim_lr: ${lr}
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 100
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: ${experiment_name}
+            run_name: ${run_name}
+            log_freq: epoch
+            log_on_workers: -1
+
+slurm_config:
+  job_name: fno-darcy
+  account: <your-account>
+  partition: gpu
+  time: "00:20:00"
+  num_nodes: 1
+  gpus_per_node: 2
+  mode: single
+  distributed_strategy: ${strategy}
+  python_venv: .venv
+  config_name: config
+  config_path: .
+  pipe_key: training_pipeline
+  run_name: ${run_name}
+  save_script: true
+  submit_job: false
+  pre_exec_file: <pre-exec script for your system>
