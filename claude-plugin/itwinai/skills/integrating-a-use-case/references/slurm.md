@@ -35,7 +35,7 @@ slurm_config:
   submit_job: false
   save_script: true
 
-  pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/tags/v0.4.2/src/itwinai/slurm/system-base-scripts/vega_pre_exec.sh
+  pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/tags/v0.5.0/src/itwinai/slurm/system-base-scripts/vega_pre_exec.sh
 
   training_cmd: >
     {itwinai_launcher} exec-pipeline
