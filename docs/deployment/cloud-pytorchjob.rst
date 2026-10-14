@@ -61,7 +61,7 @@ replicas; for more GPUs per node, raise both ``nvidia.com/gpu`` and ``--nproc_pe
 
 .. important::
 
-   **Wrap the command in ``torchrun``.** The training operator injects ``RANK``,
+   Wrap the command in ``torchrun``. The training operator injects ``RANK``,
    ``WORLD_SIZE``, ``MASTER_ADDR`` and ``MASTER_PORT``, but not ``LOCAL_RANK`` and
    ``LOCAL_WORLD_SIZE``, which itwinai needs to recognise a distributed environment. Running
    ``itwinai exec-pipeline`` directly would silently train on one GPU per pod, with each pod
