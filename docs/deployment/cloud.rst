@@ -5,6 +5,8 @@ On Kubernetes in a cloud environment, you do not write a job script. You describ
 cluster schedules it. itwinai ships container images, so there is nothing to install on the
 nodes.
 
+Every example on these pages was run on the CERN IT Kubeflow Platform.
+
 There are four ways to run, and they answer different questions:
 
 .. list-table::
