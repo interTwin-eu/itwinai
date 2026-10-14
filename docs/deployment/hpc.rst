@@ -5,42 +5,80 @@ On HPC you ask SLURM for nodes and GPUs, and SLURM starts your processes. itwina
 the job script for you, so you describe the allocation in YAML instead of writing ``#SBATCH``
 directives by hand.
 
-itwinai has been run on LUMI, JSC, Vega and Deucalion.
+itwinai has been run on JSC, Vega, LUMI and Deucalion.
 
 Launching
 ---------
 
-Describe the allocation once:
+One file holds everything: the pipeline, the plugins it needs, and the allocation. The
+``slurm_config`` section is where you describe the hardware.
 
 .. code-block:: yaml
-   :caption: ``slurm_config.yaml``
+   :caption: ``config.yaml``
 
-   account: intertwin
-   time: 01:00:00
-   partition: develbooster
+   strategy: ddp          # ddp, deepspeed or horovod
+   run_name: mnist
 
-   distributed_strategy: ddp   # ddp, deepspeed or horovod
+   plugins:
+     - git+https://github.com/matbun/itwinai-mnist-plugin.git
 
-   num_nodes: 2
-   gpus_per_node: 4
-   cpus_per_task: 16
+   slurm_config:
+     job_name: mnist-job
+     account: intertwin
+     partition: develbooster
+     time: "01:00:00"
 
-   training_cmd: "itwinai exec-pipeline +pipe_key=training_pipeline strategy=ddp"
+     num_nodes: 2
+     gpus_per_node: 4
+     cpus_per_task: 16
+     pre_exec_file: <path or URL to the pre-exec script for this system>
 
-Then generate the script, inspect it, and submit it:
+     # Fields pointing back at this file
+     pipe_key: training_pipeline
+     config_name: config
+     config_path: .
+
+     # Propagate the global config into this section
+     distributed_strategy: ${strategy}
+     run_name: ${run_name}
+
+     # Template for the command the job script will launch
+     training_cmd: >
+       {itwinai_launcher} exec-pipeline
+       --config-name={config_name}
+       --config-path={config_path}
+       --strategy={distributed_strategy}
+       --run-name={run_name}
+       +pipe_key={pipe_key}
+
+   training_pipeline:
+     _target_: itwinai.pipeline.Pipeline
+     steps:
+       ...
+
+Then install the plugins, build the script and submit it, in one command:
 
 .. code-block:: bash
 
-   itwinai generate-slurm -c slurm_config.yaml        # print it
-   itwinai generate-slurm -c slurm_config.yaml -s     # save it
-   itwinai generate-slurm -c slurm_config.yaml -j     # submit it
+   itwinai run -c config.yaml     # install plugins, print the script
+   itwinai run -sc config.yaml    # also save it, to read before submitting
+   itwinai run -jc config.yaml    # also submit it
 
 The builder picks the launcher from ``distributed_strategy``: ``torchrun`` for ``ddp`` and
 ``deepspeed``, plain ``srun`` for ``horovod``, and a Ray head plus workers when Ray is
 requested. You do not call ``torchrun`` yourself.
 
-See :doc:`../getting-started/slurm` for the SLURM primer, the full flag list and the
-configuration reference.
+.. note::
+
+   ``itwinai generate-slurm -c slurm_config.yaml`` takes the same fields from a **standalone**
+   file instead, and only builds the script: no plugin installation, no pipeline in the file.
+   Use it when the environment is already set up and you want the script and nothing else.
+
+The ``slurm_config`` fields are
+:class:`~itwinai.slurm.configuration.MLSlurmBuilderConfig`, which extends
+:class:`~itwinai.slurm.configuration.SlurmScriptConfiguration`. See
+:doc:`../getting-started/complete-workflow-example` for the single-file walkthrough and
+:doc:`../getting-started/slurm` for the SLURM primer and the full flag list.
 
 Containers on HPC
 -----------------
