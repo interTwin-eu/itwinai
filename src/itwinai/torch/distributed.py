@@ -1264,6 +1264,9 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
 
         return model, optimizer, lr_scheduler
 
+    def clean_up(self) -> None:
+        """Do nothing: Ray Train owns the process group and destroys it itself."""
+
 
 class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
     """A distributed strategy using Ray and DeepSpeed for PyTorch training.
@@ -1305,3 +1308,6 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
         self.is_initialized = True
 
         self.set_device()
+
+    def clean_up(self) -> None:
+        """Do nothing: Ray Train owns the process group and destroys it itself."""

@@ -27,6 +27,13 @@
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: 🚀 Deployment modes
+
+   deployment/index
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
    :caption: 🪄 How it works
 
    how-it-works/training/training
@@ -132,6 +139,16 @@ Quick Start
 - :doc:`Submitting jobs to SLURM on HPC <getting-started/slurm>`
 - :doc:`Using itwinai Container Images <getting-started/containers>`
 - :doc:`Using itwinai with RUCIO <getting-started/rucio>`
+
+🚀 Deployment Modes
+====================
+
+- :doc:`Pick a deployment mode <deployment/index>`
+- :doc:`HPC with SLURM <deployment/hpc>`
+- :doc:`Kubernetes and Kubeflow <deployment/cloud>`
+- :doc:`RayJob: distributed training and HPO <deployment/cloud-ray>`
+- :doc:`Kubeflow pipelines and PyTorchJob <deployment/cloud-pipelines>`
+- :doc:`Cloud to HPC with interLink <deployment/cloud-hpc>`
 
 🛠️ Core Guides
 ===============
