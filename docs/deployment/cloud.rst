@@ -27,8 +27,16 @@ There are four ways to run, and they answer different questions:
 They compose: a pipeline step can create a ``RayJob`` or a ``PyTorchJob`` instead of
 training in its own pod, which keeps the orchestration in Kubeflow and the scaling in Ray.
 
-What the cluster must provide
------------------------------
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   cloud-notebook
+   cloud-ray
+   cloud-pipelines
+   cloud-pytorchjob
+
+The cluster must provide:
 
 - **GPU nodes**, with the NVIDIA device plugin.
 - **A shared filesystem** mounted in every pod, for the dataset, the checkpoints and the
@@ -36,10 +44,7 @@ What the cluster must provide
 - **The KubeRay operator** for the RayJob path, and **Kubeflow** for notebooks, pipelines and
   PyTorchJob.
 
-Where to put data and code
---------------------------
-
-Put both on the shared filesystem and point the job at them:
+Put your data and your code on the shared filesystem, and point the job at them:
 
 .. code-block:: text
 
@@ -60,11 +65,3 @@ Hydra to import the classes named by ``_target_``:
 
 For anything more permanent, build your use case into an image or an
 :doc:`itwinai plugin <../getting-started/plugins>`.
-
-.. toctree::
-   :maxdepth: 1
-
-   cloud-notebook
-   cloud-ray
-   cloud-pipelines
-   cloud-pytorchjob
