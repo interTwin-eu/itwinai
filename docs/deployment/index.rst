@@ -1,5 +1,5 @@
-Deployment modes
-================
+Picking a mode
+==============
 
 itwinai runs the same way everywhere. Your pipeline configuration, your trainer and the
 ``itwinai exec-pipeline`` command do not change when you move from a laptop to a
@@ -40,21 +40,11 @@ What is identical in every mode
 
 So porting a use case between modes is a change of job script, not a change of code.
 
-Picking a mode
---------------
+Which one
+---------
 
 - You have an HPC allocation and a queue: use :doc:`HPC <hpc>`.
 - You have a Kubernetes cluster with GPUs: use :doc:`Cloud <cloud>`. Start with a notebook to
   explore, then submit a ``RayJob`` to scale out.
 - You have both, and the data or the GPUs are on the HPC side while your orchestration lives
   in Kubernetes: use :doc:`Cloud to HPC <cloud-hpc>`.
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   hpc
-   cloud
-   cloud-ray
-   cloud-pipelines
-   cloud-hpc

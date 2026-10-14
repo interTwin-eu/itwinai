@@ -30,6 +30,9 @@
    :caption: 🚀 Deployment modes
 
    deployment/index
+   deployment/hpc
+   deployment/cloud
+   deployment/cloud-hpc
 
 .. toctree::
    :maxdepth: 2
@@ -143,12 +146,10 @@ Quick Start
 🚀 Deployment Modes
 ====================
 
-- :doc:`Pick a deployment mode <deployment/index>`
-- :doc:`HPC with SLURM <deployment/hpc>`
-- :doc:`Kubernetes and Kubeflow <deployment/cloud>`
-- :doc:`RayJob: distributed training and HPO <deployment/cloud-ray>`
-- :doc:`Kubeflow pipelines and PyTorchJob <deployment/cloud-pipelines>`
-- :doc:`Cloud to HPC with interLink <deployment/cloud-hpc>`
+- :doc:`Picking a mode <deployment/index>`
+- :doc:`HPC <deployment/hpc>`
+- :doc:`Cloud <deployment/cloud>`
+- :doc:`Cloud to HPC <deployment/cloud-hpc>`
 
 🛠️ Core Guides
 ===============

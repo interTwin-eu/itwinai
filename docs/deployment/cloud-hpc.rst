@@ -1,9 +1,9 @@
-Cloud to HPC: interLink
-=======================
+Cloud to HPC
+============
 
 Sometimes the orchestration belongs in Kubernetes but the compute belongs on HPC: the GPUs are
 there, or the dataset is too large to move, or the allocation is already granted.
-`interLink <https://github.com/interTwin-eu/interLink>`_ makes that possible without running
+`interLink <https://github.com/interlink-hq/interLink>`_ makes that possible without running
 two separate workflows.
 
 How it works
@@ -21,14 +21,6 @@ What this buys you:
 - **No SSH in your workflow.** You do not script ``sbatch`` over SSH, and you do not need an
   interactive session to launch anything.
 - **HPC-grade interconnect** where it matters, since the training itself runs on the HPC nodes.
-
-What it costs you:
-
-- **Latency.** A pod becomes a queued SLURM job, so startup is at the mercy of the queue.
-- **A site agreement.** interLink needs a component installed on, or reachable from, the HPC
-  site, which is a conversation with the site administrators rather than a local decision.
-- **Images must be staged.** The container has to be on the HPC filesystem as a Singularity
-  ``.sif`` beforehand. See :doc:`hpc`.
 
 Requesting HPC resources
 ------------------------
@@ -50,33 +42,25 @@ and walltime go. ``slurm-job.vk.io/pre-exec`` runs on the compute node before th
 starts, which is where module loads and network setup belong.
 
 The pod's ``image`` then points at the ``.sif`` on the HPC filesystem rather than at a
-registry.
+registry. See :doc:`../getting-started/containers` for building it.
 
-Running itwinai this way
-------------------------
+Running itwinai with interLink
+------------------------------
+
+Notebooks
+~~~~~~~~~
+
+In interTwin we offloaded interactive JupyterLab sessions this way: the hub stays in
+Kubernetes and the single-user server runs on an HPC node. The ``jlab-slim`` image ships
+``/opt/ssh/jupyterhub-singleuser``, which wraps the server in an asyncssh tunnel back to the
+hub so it stays reachable from outside the HPC network. The notebook itself is the one in
+:doc:`cloud-notebook`.
+
+Ray
+~~~
 
 The pattern that works today is to start a **Ray cluster whose workers are offloaded to HPC**,
 then submit itwinai to it exactly as in :doc:`cloud-ray`. The KubeRay operator runs in
 Kubernetes, the head pod can stay local, and the GPU worker pods land on the supercomputer. As
 far as itwinai is concerned there is a Ray cluster with GPUs, so ``strategy=ddp`` becomes
 :class:`~itwinai.torch.distributed.RayDDPStrategy` and nothing in the configuration changes.
-
-A worked example, with a real KubeRay values file, is in
-:doc:`../tutorials/distrib-ml/kuberay-setup-tutorial`. It runs on a Kubernetes cluster at GRNET
-offloading to Vega, using the
-`hython itwinai plugin <https://github.com/interTwin-eu/hython-itwinai-plugin>`_.
-
-.. note::
-
-   That tutorial is site-specific by necessity: the ``.sif`` path, the network interface for
-   NCCL and the ``pre-exec`` commands differ at every site. Read it as a worked example rather
-   than a recipe, and expect to rewrite the site-dependent parts.
-
-Status
-------
-
-This mode is the least turnkey of the three. It is in production use within the interTwin
-project and the pieces are proven, but setting it up at a new site means working with that
-site. If you are evaluating it, start from :doc:`cloud-ray` on a plain Kubernetes cluster,
-confirm your use case runs there, and add interLink afterwards: the itwinai side is unchanged
-and only the worker pods move.

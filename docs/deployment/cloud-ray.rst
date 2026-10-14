@@ -1,5 +1,5 @@
-Cloud: RayJob
-=============
+RayJob
+======
 
 A ``RayJob`` creates a short-lived Ray cluster, runs one command on it, and deletes it. This is
 the recommended way to do multi-GPU and multi-node training on Kubernetes with itwinai,
@@ -54,7 +54,7 @@ workers land on one node or several.
              serviceAccountName: default-editor
              containers:
              - name: ray-head
-               image: ghcr.io/intertwin-eu/itwinai:0.4.2-slim-torch2.6-noble
+               image: ghcr.io/intertwin-eu/itwinai:torch-slim-latest
                env:
                - name: PYTHONPATH
                  value: /shared/<user>/mnist-usecase
@@ -78,7 +78,7 @@ workers land on one node or several.
                nvidia.com/gpu.product: NVIDIA-L40S
              containers:
              - name: ray-worker
-               image: ghcr.io/intertwin-eu/itwinai:0.4.2-slim-torch2.6-noble
+               image: ghcr.io/intertwin-eu/itwinai:torch-slim-latest
                env:
                - name: PYTHONPATH
                  value: /shared/<user>/mnist-usecase
@@ -144,51 +144,9 @@ The search space is part of the pipeline configuration, not the manifest:
        lower: 1e-5
        upper: 1e-3
 
-Ray Tune prints one row per trial at the end:
-
-.. code-block:: text
-
-   Trial status: 4 TERMINATED
-   Logical resource usage: 5.0/16 CPUs, 1.0/2 GPUs (0.0/2.0 accelerator_type:L40S)
-   +--------------------------+------------+------------+-------------+------+---------+
-   | Trial name               | status     | batch_size | optim_lr    | iter | loss    |
-   +--------------------------+------------+------------+-------------+------+---------+
-   | TorchTrainer_7e03c_00000 | TERMINATED |         64 | 0.000458146 |    2 | 0.48263 |
-   | TorchTrainer_7e03c_00001 | TERMINATED |        128 | 0.000215905 |    2 | 1.96529 |
-   | TorchTrainer_7e03c_00002 | TERMINATED |         64 | 0.000262630 |    2 | 1.96492 |
-   | TorchTrainer_7e03c_00003 | TERMINATED |         64 | 0.000281781 |    2 | 0.47591 |
-   +--------------------------+------------+------------+-------------+------+---------+
-
-Trading GPUs for trials is the usual tuning decision: ``ray_num_workers`` spends GPUs on making
-one trial faster, ``ray_num_trials`` spends them on exploring more configurations.
-
-Gotchas
--------
-
-.. warning::
-
-   **A RayJob can report ``SUCCEEDED`` while your training failed.** The job status reflects
-   the entrypoint process, not the Ray Tune trials. A trial that raises still leaves
-   ``jobStatus: SUCCEEDED``. Always read the trial table: ``TERMINATED`` means the trial
-   finished, ``ERROR`` means it did not.
-
-Other things worth knowing:
-
-- **The service account is not optional.** Ray workers talk to the Kubernetes API to find the
-  head, so a Kubeflow cluster needs ``serviceAccountName: default-editor`` on head and workers.
-  Without it the cluster never becomes ready.
-- **Give the head no GPUs and no CPUs for scheduling.** ``num-cpus: '0'`` on the head keeps Ray
-  from placing training workers there.
-- **Pin the NCCL interface.** On a pod network, ``NCCL_SOCKET_IFNAME=eth0`` and
-  ``NCCL_IB_DISABLE=1`` avoid a hang while NCCL probes interfaces it cannot use.
-- **The first run on a fresh node is slow.** The itwinai image is large, so expect a few
-  minutes of image pull before anything starts. Subsequent jobs on the same node start at once.
-- **Your cluster may restrict GPU counts and models.** Admission policies often allow only
-  certain GPU counts per pod, and a ``nodeSelector`` on the GPU model is frequently required.
-  Check your platform's documentation.
-
 What to read next
 -----------------
 
-- :doc:`cloud-pipelines` to chain this into a multi-step pipeline, or to run DDP without Ray.
+- :doc:`cloud-pipelines` to chain this into a multi-step pipeline, or
+  :doc:`cloud-pytorchjob` to run DDP without Ray.
 - :doc:`../how-it-works/hpo/explain-hpo` for schedulers, metrics and search algorithms.
