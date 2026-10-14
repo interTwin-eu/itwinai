@@ -1,7 +1,7 @@
 Cloud: Kubernetes and Kubeflow
 ==============================
 
-On Kubernetes you do not write a job script. You describe the job as a manifest and the
+On Kubernetes in a cloud environment, you do not write a job script. You describe the job as a manifest and the
 cluster schedules it. itwinai ships container images, so there is nothing to install on the
 nodes.
 
@@ -31,9 +31,9 @@ What the cluster must provide
 - **The KubeRay operator** for the RayJob path, and **Kubeflow** for notebooks, pipelines and
   PyTorchJob.
 
-Examples in this section were run on `NGT <https://ngt.docs.cern.ch>`_, the CERN Kubeflow
-platform. Labels such as ``mount-eos`` and the ``default-editor`` service account are specific
-to that cluster, so check your own platform's conventions before copying them.
+Examples in this section were run on the CERN Kubeflow platform. Labels such as
+``mount-eos`` and the ``default-editor`` service account are specific to that
+cluster, so check your own platform's conventions before copying them.
 
 Images
 ------
@@ -57,6 +57,12 @@ Interactive: a Jupyter notebook
 A Kubeflow ``Notebook`` gives you a JupyterLab with a GPU, your code and the shared
 filesystem, which is the quickest way to try itwinai out.
 
+The easiest way is the **Kubeflow dashboard**: Notebooks, then New Notebook, then paste the
+JupyterLab image as a custom image and pick how many GPUs you want. The image handles the
+Kubeflow contract by itself, so there is nothing else to set.
+
+For something repeatable, the same notebook as a manifest:
+
 .. code-block:: yaml
    :caption: ``notebook.yaml``
 
@@ -76,28 +82,37 @@ filesystem, which is the quickest way to try itwinai out.
          containers:
          - name: itwinai-lab
            image: ghcr.io/intertwin-eu/itwinai:jlab-slim-0.4.2-torch2.6-noble
-           command: ["bash", "-c"]
-           args:
-             - >-
-               exec start-notebook.sh
-               --ServerApp.base_url="${NB_PREFIX}"
-               --ServerApp.token=""
-               --ServerApp.password=""
-               --ServerApp.allow_origin="*"
-               --ServerApp.ip=0.0.0.0
            resources:
              limits:
                nvidia.com/gpu: 1
 
 Apply it with ``kubectl apply -n <your-namespace> -f notebook.yaml``, then open the notebook
-from the Kubeflow dashboard.
+from the Kubeflow dashboard. The container name has to match the notebook name.
 
-.. important::
+.. note::
 
-   The ``command`` override is required. Kubeflow serves notebooks behind a path prefix and
-   passes it in ``NB_PREFIX``, but the upstream Jupyter image starts with its own entrypoint
-   and ignores that variable, so without the override the notebook starts and every request
-   returns 404.
+   **What the image does for Kubeflow, and what to do with older images.** Kubeflow serves
+   each notebook behind a path prefix, passes it in ``NB_PREFIX``, and runs the container as
+   the logged-in user's UID with a ``/etc/passwd`` of its own. The entrypoint handles all
+   three: it serves JupyterLab under ``NB_PREFIX``, it skips the upstream Jupyter start
+   script when that script's ``jovyan`` user does not exist, and it starts even when the
+   optional Rucio configuration cannot be written.
+
+   Images up to ``jlab-slim-0.4.2`` do none of that, so started from the dashboard they fail
+   with ``PermissionError: '/opt/rucio/etc/rucio.cfg'``. With one of those, override the
+   command in a manifest instead:
+
+   .. code-block:: yaml
+
+      command: ["bash", "-c"]
+      args:
+        - >-
+          exec start-notebook.sh
+          --ServerApp.base_url="${NB_PREFIX}"
+          --ServerApp.token=""
+          --ServerApp.password=""
+          --ServerApp.allow_origin="*"
+          --ServerApp.ip=0.0.0.0
 
 Inside the notebook, itwinai is already installed and the CLI works as anywhere else:
 
