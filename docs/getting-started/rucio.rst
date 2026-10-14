@@ -19,9 +19,8 @@ When using the image mentioned above, the following steps are necessary before u
 1. **Create a RUCIO account**: contact the relevant RUCIO administrator in your project to set
    up your RUCIO account.
 
-2. **Create a** ``rucio.cfg`` **file**: it must contain at least the following fields (see
-   ``env-files/torch/rucio.cfg`` for a template, and replace ``account`` with your own RUCIO
-   account name):
+2. **Create a** ``rucio.cfg`` **file**: it must contain at least the following fields (replace
+   ``account`` with your own RUCIO account name):
 
    .. code-block:: ini
 
