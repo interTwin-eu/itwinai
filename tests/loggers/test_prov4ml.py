@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import mlflow
 import pytest
-from yprov4ml import Context
 
 from itwinai.loggers import Prov4MLLogger
 
@@ -23,7 +22,6 @@ def mlflow_run():
         # nested=True is needed
         yield mlflow.start_run(nested=True)
         mlflow.end_run()
-
 
 
 def test_create_destroy_logger_context(logger_instance):
@@ -75,8 +73,8 @@ def test_save_hyperparameters(logger_instance):
     params = {"learning_rate": 0.01, "batch_size": 32}
     with patch("yprov4ml.log_param") as log_param:
         logger_instance.save_hyperparameters(params)
-        log_param.assert_any_call(key="learning_rate", value=0.01, context=Context.TRAINING)
-        log_param.assert_any_call(key="batch_size", value=32, context=Context.TRAINING)
+        log_param.assert_any_call(key="learning_rate", value=0.01, context="training")
+        log_param.assert_any_call(key="batch_size", value=32, context="training")
 
 
 def test_log_metric(logger_instance):
@@ -87,7 +85,7 @@ def test_log_metric(logger_instance):
         logger_instance.log(item=0.95, identifier="accuracy", kind="metric", step=1)
 
         log_metric.assert_called_once_with(
-            key="accuracy", value=0.95, step=1, context=Context.TRAINING
+            key="accuracy", value=0.95, step=1, context="training"
         )
 
 
@@ -106,7 +104,7 @@ def test_log_flops_per_batch(logger_instance):
             batch=batch_mock,
             label="my_flops_pb",
             step=1,
-            context=Context.TRAINING
+            context="training",
         )
 
 
@@ -125,7 +123,7 @@ def test_log_flops_per_epoch(logger_instance):
             dataset=dataset_mock,
             label="my_flops_pe",
             step=1,
-            context=Context.TRAINING,
+            context="training",
         )
 
 
@@ -136,17 +134,7 @@ def test_log_system(logger_instance):
     with patch("yprov4ml.log_system_metrics") as log_system:
         logger_instance.log(item=None, identifier=None, kind="system", step=1)
 
-        log_system.assert_called_once_with(context=Context.TRAINING, step=1)
-
-
-def test_log_carbon(logger_instance):
-    logger_instance.should_log = MagicMock(return_value=True)
-    logger_instance.create_logger_context(rank=1)
-
-    with patch("yprov4ml.log_carbon_metrics") as log_carbon:
-        logger_instance.log(item=None, identifier=None, kind="carbon", step=1)
-
-        log_carbon.assert_called_once_with(context=Context.TRAINING, step=1)
+        log_system.assert_called_once_with(context="training", step=1)
 
 
 def test_log_execution_time(logger_instance):
@@ -159,7 +147,7 @@ def test_log_execution_time(logger_instance):
         )
 
         log_exec_time.assert_called_once_with(
-            label="execution_time", context=Context.TRAINING, step=1
+            label="execution_time", context="training", step=1
         )
 
 
@@ -172,7 +160,7 @@ def test_log_model(logger_instance):
         logger_instance.log(item=model_mock, identifier="model_v1", kind="model", step=1)
 
         log_model.assert_called_once_with(
-            model_name="model_v1", model=model_mock, context=Context.TRAINING, step=1
+            model_name="model_v1", model=model_mock, context="training", step=1
         )
 
 
@@ -190,7 +178,7 @@ def test_log_best_model(logger_instance):
             model_name="best_model_v1",
             model=model_mock,
             log_model_info=True,
-            log_model_layers=False
+            log_model_layers=False,
         )
 
 
@@ -198,7 +186,7 @@ def test_log_prov_documents(logger_instance, mlflow_run):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
-    with patch("yprov4ml.log_provenance_documents") as log_prov_documents:
+    with patch.object(logger_instance, "log_provenance_documents") as log_prov_documents:
         log_prov_documents.return_value = ["doc1", "doc2"]
 
         with patch("mlflow.log_artifact") as mlflow_log_artifact:
