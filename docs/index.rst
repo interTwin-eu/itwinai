@@ -27,6 +27,16 @@
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: 🚀 Deployment modes
+
+   deployment/index
+   deployment/hpc
+   deployment/cloud
+   deployment/cloud-hpc
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
    :caption: 🪄 How it works
 
    how-it-works/training/training
@@ -132,6 +142,14 @@ Quick Start
 - :doc:`Submitting jobs to SLURM on HPC <getting-started/slurm>`
 - :doc:`Using itwinai Container Images <getting-started/containers>`
 - :doc:`Using itwinai with RUCIO <getting-started/rucio>`
+
+🚀 Deployment Modes
+====================
+
+- :doc:`Picking a mode <deployment/index>`
+- :doc:`HPC <deployment/hpc>`
+- :doc:`Cloud <deployment/cloud>`
+- :doc:`Cloud to HPC <deployment/cloud-hpc>`
 
 🛠️ Core Guides
 ===============

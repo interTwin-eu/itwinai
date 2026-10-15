@@ -483,3 +483,20 @@ def test_ray_distributed_strategy(
             trainer.fit()
         case _:
             raise ValueError("unrecognized strategy name")
+
+
+@pytest.mark.parametrize("strategy_cls", [RayDDPStrategy, RayDeepSpeedStrategy])
+def test_ray_strategies_do_not_clean_up_process_group(strategy_cls):
+    """Ray Train owns the process group, so the Ray strategies must not destroy it.
+
+    Deliberately a class-level check with no Ray cluster and no ``hpc`` marker, so that CI
+    catches it: the bug this guards against was a method resolution order slip, where
+    ``clean_up`` resolved to the non-Ray parent and destroyed the group a second time.
+    """
+    owner = strategy_cls.clean_up.__qualname__.split(".")[0]
+    assert owner == strategy_cls.__name__, (
+        f"{strategy_cls.__name__}.clean_up resolves to {owner}.clean_up, which destroys the "
+        "process group owned by Ray Train. Override clean_up on the concrete Ray strategy; "
+        f"defining it on {RayTorchDistributedStrategy.__name__} is not enough, because the "
+        "non-Ray parent comes first in the MRO."
+    )
