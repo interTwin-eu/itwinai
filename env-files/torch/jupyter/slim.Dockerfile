@@ -91,7 +91,11 @@ COPY env-files/torch/jupyter/configure.py /opt/setup-rucio-jupyterlab/configure.
 RUN chmod +x /opt/setup-rucio-jupyterlab/configure.py && chown -R ${NB_UID}:${NB_GID} /opt/setup-rucio-jupyterlab
 COPY env-files/torch/jupyter/setup.sh /usr/local/bin/setup.sh
 RUN chmod +x /usr/local/bin/setup.sh
-RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
+# Kubeflow runs the notebook as the logged-in user's UID, not NB_UID, so /opt/rucio/etc
+# must be writable by the NB_GID group rather than only by NB_UID. fix-permissions adds
+# group write and the setgid bit, which is what makes an arbitrary UID work.
+RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc && \
+    fix-permissions /opt/rucio/etc
 # Wrap Rucio setup.sh ans start.sh under a single file (which is called from ENTRYPOINT)
 RUN mv /usr/local/bin/start.sh /usr/local/bin/start-original.sh
 COPY env-files/torch/jupyter/start-cloud.sh /usr/local/bin/start.sh
