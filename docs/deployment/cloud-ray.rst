@@ -45,7 +45,7 @@ workers land on one node or several.
        ray_gpus_per_worker=1
        ray_cpus_per_worker=3
      rayClusterSpec:
-       rayVersion: '2.54.0'
+       rayVersion: '2.54.0'  # must match the image, see below
        headGroupSpec:
          rayStartParams:
            num-cpus: '0'
@@ -89,6 +89,10 @@ workers land on one node or several.
                resources:
                  limits:
                    nvidia.com/gpu: 1
+
+``rayVersion`` has to match the Ray version in the image. itwinai does not pin Ray, so the
+version moves with the image tag: read it with ``docker run --rm <image> ray --version`` and
+update the manifest when you change tag.
 
 Submit it with ``kubectl apply -n <your-namespace> -f rayjob-train.yaml``, and follow it with
 ``kubectl logs -n <your-namespace> -f job/itwinai-mnist-ddp``.

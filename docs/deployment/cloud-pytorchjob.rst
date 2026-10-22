@@ -59,6 +59,12 @@ DDP, DeepSpeed or Horovod across pods without a Ray cluster.
 Two replicas with one GPU each gives a world size of 2. For more nodes, raise ``Worker``
 replicas; for more GPUs per node, raise both ``nvidia.com/gpu`` and ``--nproc_per_node``.
 
+``WORLD_SIZE`` is the operator's, not PyTorch's: it is ``replicas * spec.nprocPerNode``, and
+the manifest leaves ``spec.nprocPerNode`` unset, so it counts pods and feeds ``--nnodes``
+correctly. Keep it unset and let the ``--nproc_per_node`` flag carry the GPUs per pod: set
+``spec.nprocPerNode`` instead and ``WORLD_SIZE`` becomes the process count, so ``--nnodes``
+has to read ``PET_NNODES``, which the operator sets to the replica count.
+
 .. important::
 
    Wrap the command in ``torchrun``. The training operator injects ``RANK``,

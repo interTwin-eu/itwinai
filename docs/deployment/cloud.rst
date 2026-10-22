@@ -1,9 +1,9 @@
 Cloud
 =====
 
-On Kubernetes in a cloud environment, you do not write a job script. You describe the job as a manifest and the
-cluster schedules it. itwinai ships container images, so there is nothing to install on the
-nodes.
+On Kubernetes in a cloud environment, you do not write a job script. You describe the job as
+a manifest and the cluster schedules it. itwinai ships container images, so there is nothing
+to install on the nodes.
 
 Every example on these pages was run on the CERN IT Kubeflow Platform.
 

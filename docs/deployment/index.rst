@@ -3,8 +3,8 @@ Picking a mode
 
 itwinai runs the same way everywhere. Your pipeline configuration, your trainer and the
 ``itwinai exec-pipeline`` command do not change when you move from a laptop to a
-supercomputer or to a Kubernetes cluster in the cloud. What changes is the **launcher**: the thing that
-allocates GPUs and starts one process per GPU.
+supercomputer or to a Kubernetes cluster in the cloud. What changes is the **launcher**: the
+thing that allocates GPUs and starts one process per GPU.
 
 This section covers the launchers.
 

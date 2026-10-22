@@ -10,9 +10,12 @@ you want. The image handles the Kubeflow contract by itself, so there is nothing
 See :doc:`../getting-started/containers` for the tag scheme and for building your own image
 on top of it.
 
-Inside the notebook, itwinai is already installed and the CLI works as anywhere else:
+Inside the notebook, itwinai is already installed and the CLI works as anywhere else, from
+your use case directory and with ``PYTHONPATH`` set as in :doc:`cloud`:
 
 .. code-block:: bash
 
+   cd /shared/<user>/mnist-usecase
+   export PYTHONPATH=/shared/<user>/mnist-usecase
    itwinai exec-pipeline --config-name config.yaml +pipe_key=training_pipeline epochs=2
 
