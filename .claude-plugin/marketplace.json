@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Claude Code skills for itwinai: scalable scientific machine learning on HPC",
-    "version": "0.4.2"
+    "version": "0.5.0"
   },
   "plugins": [
     {
       "name": "itwinai",
       "source": "./claude-plugin/itwinai",
       "description": "Integrate scientific training code into itwinai: distributed training, HPO, logging, profiling and scalability reports",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "author": {
         "name": "interTwin - CERN and Forschungszentrum Jülich (FZJ)",
         "email": "matteo.bunino@cern.ch"
