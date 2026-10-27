@@ -33,8 +33,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -q build
         #   pip install setuptools wheel
+      - name: Check that the release tag matches the package version
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [[ "$RELEASE_TAG" != "v$version" ]]; then
+            echo "::error::release tag $RELEASE_TAG does not match pyproject version $version"
+            exit 1
+          fi
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
       - name: Build package
         run:  python -m build
         #   python setup.py sdist bdist_wheel  # Could also be python -m build
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # A version already on PyPI cannot be uploaded again, so without this a release that
+          # has to be re-created (e.g. to rebuild the container images) fails here
+          skip-existing: true
