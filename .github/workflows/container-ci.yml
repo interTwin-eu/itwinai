@@ -23,6 +23,9 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
     strategy:
+      # One broken image must not cancel the others, otherwise a single failure leaves a
+      # release with no images at all
+      fail-fast: false
       matrix:
         config:
           # Note: in the tag template we replace '$' with '@' as otherwise the GH action will
@@ -39,7 +42,11 @@ jobs:
             dockerfile: "../env-files/torch/skinny.Dockerfile"
             nickname: "torch-skinny"
             tag_template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
-            build_arm: true
+            # ARM is off since yprov4ml 3.x: it requires zarr<3, zarr 2.18.7 requires
+            # numcodecs<0.16, and numcodecs ships no aarch64 wheel before 0.16. The arm64 build
+            # would have to compile it from source, and this image carries no C compiler.
+            # Re-enable once yprov4ml accepts zarr 3: https://github.com/HPCI-Lab/yProv4ML
+            build_arm: false
             # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip_hpc: true
             skip_singularity: true
