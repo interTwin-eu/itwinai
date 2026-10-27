@@ -8,7 +8,7 @@ description: Use when adapting existing scientific training code (a standalone P
 Turn existing scientific training code into an installable itwinai plugin that runs distributed
 on HPC, logs to MLflow, tunes hyperparameters with Ray, and produces a scalability report.
 
-**This skill targets itwinai 0.4.2.** Phase 0 checks the installed version against it.
+**This skill targets itwinai 0.5.0.** Phase 0 checks the installed version against it.
 
 ## Re-entry: already have a working plugin?
 
