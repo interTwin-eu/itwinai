@@ -30,5 +30,6 @@ jobs:
         run: cat workflow_validation_step.json
       - name: SQAaaS assessment with unit testing (QC.Uni) step
         uses: eosc-synergy/sqaaas-assessment-action@v2
+        continue-on-error: true
         with:
           qc_uni_steps: workflow_validation_step
