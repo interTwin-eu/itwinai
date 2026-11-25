@@ -86,6 +86,7 @@ if TYPE_CHECKING:
     import mlflow
 
 
+DEFAULT_PROV_CONTEXT = "Training_0"
 py_logger = logging.getLogger(__name__)
 
 
@@ -1159,31 +1160,44 @@ class LoggersCollection(Logger):
             logger.save_hyperparameters(params=params)
 
 
+_PROV_UNSAFE = {"<": "\u2039", ">": "\u203a", "&": "+", '"': "'"}
+
+
+def _prov_safe(value: Any) -> Any:
+    """Make a value safe for yProv4ML: non-primitives are stringified and the characters
+    that break Graphviz HTML-like labels (``< > & "``) are replaced."""
+    if isinstance(value, (int, float, bool)):
+        return value
+    return re.sub(r'[<>&"]', lambda m: _PROV_UNSAFE[m.group()], str(value))
+
+
 class Prov4MLLogger(Logger):
     """
-    Abstraction around Prov4ML logger.
+    Abstraction around the yProv4ML logger (graph-based provenance API).
+
+    Contexts are mapped to graph nodes: metrics/system/flops/time are ``is_output_to``
+    ``context``; hyperparameters are ``is_input_to`` ``context``; datasets and models
+    are linked to ``context`` (and to a "Download" node for datasets) so the
+    provenance graph connects data -> params -> context -> models.
 
     Args:
-        prov_user_namespace (str, optional): location to where provenance
-            files will be uploaded. Defaults to "www.example.org".
-        experiment_name (str, optional): experiment name.
-            Defaults to "experiment_name".
-        provenance_save_dir (Union[Path, str], optional): path where to store provenance
-            files and logs. Defaults to "prov".
-        save_after_n_logs (Optional[int], optional): how often to save
-            logs to disk from main memory. Defaults to 100.
-        create_graph (Optional[bool], optional): whether to create a
-            provenance graph. Defaults to True.
-        create_svg (Optional[bool], optional): whether to create an SVG
-            representation of the provenance graph. Defaults to True.
-        log_freq (Union[int, Literal['epoch', 'batch']], optional):
-            determines whether the logger should fulfill or ignore
-            calls to the `log()` method. See ``Logger.should_log`` method for
-            more details. Defaults to 'epoch'.
-        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
-            workers; if int log on worker with rank equal to log_on_workers;
-            if List[int], log on workers which rank is in the list.
-            Defaults to 0 (the global rank of the main worker).
+        prov_user_namespace (str, optional): provenance namespace.
+            Defaults to "www.example.org".
+        experiment_name (str, optional): experiment name. Defaults to "experiment_name".
+        provenance_save_dir (Union[Path, str], optional): where to store provenance
+            files and logs. Defaults to "mllogs/prov_logs".
+        save_after_n_logs (Optional[int], optional): flush frequency to disk.
+            Defaults to 100.
+        create_graph (Optional[bool], optional): create provenance graph. Defaults to True.
+        create_svg (Optional[bool], optional): create SVG of the graph. Defaults to True.
+        create_ro_crate (Optional[bool], optional): create an RO-Crate. Defaults to True.
+        create_card (Optional[bool], optional): create a provenance card. Defaults to True.
+        metrics_file_type (str, optional): metrics file format. Defaults to "csv".
+        use_compressor (bool, optional): compress metrics files. Defaults to False.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional): see
+            ``Logger.should_log``. Defaults to 'epoch'.
+        log_on_workers (Optional[Union[int, List[int]]]): ranks that log.
+            Defaults to 0.
     """
 
     #: Supported kinds in the ``log`` method
@@ -1209,6 +1223,10 @@ class Prov4MLLogger(Logger):
         create_svg: bool | None = True,
         log_freq: int | Literal["epoch", "batch"] = "epoch",
         log_on_workers: int | List[int] = 0,
+        create_ro_crate: bool | None = False,
+        create_card: bool | None = True,
+        metrics_file_type: str = "csv",
+        use_compressor: bool = False,
     ) -> None:
         super().__init__(
             savedir=provenance_save_dir,
@@ -1221,6 +1239,11 @@ class Prov4MLLogger(Logger):
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
         self.create_svg = create_svg
+        self.create_ro_crate = create_ro_crate
+        self.create_card = create_card
+        self.metrics_file_type = metrics_file_type
+        self.use_compressor = use_compressor
+        self._reset_prov_state()
 
         import mlflow
         import yprov4ml
@@ -1230,15 +1253,33 @@ class Prov4MLLogger(Logger):
         self.log_provenance_documents = log_provenance_documents
         self.mlflow = mlflow
 
+    def _reset_prov_state(self) -> None:
+        self._epoch = 0
+
+    @staticmethod
+    def _stage_of(identifier: Any) -> str:
+        """Infer the graph stage from an identifier (e.g. 'validation_loss')."""
+        name = str(identifier).lower()
+        if name.startswith("global_"):
+            name = name[len("global_"):]
+        if name.startswith(("val", "valid")):
+            return "Validation"
+        if name.startswith("test"):
+            return "Testing"
+        return "Training"
+
+    def _ctx(self, identifier: Any, epoch: int | None = None) -> str:
+        return f"{self._stage_of(identifier)}_{self._epoch if epoch is None else epoch}"
+
     @check_not_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context.
 
         Args:
-            rank (int): global rank of current process,
-                used in distributed environments. Defaults to 0.
+            rank (int): global rank of current process. Defaults to 0.
         """
         self.worker_rank = rank
+        self._reset_prov_state()
 
         if not self.should_log():
             self.is_initialized = True
@@ -1253,6 +1294,8 @@ class Prov4MLLogger(Logger):
             save_after_n_logs=self.save_after_n_logs,
             # This class will control which workers can log
             collect_all_processes=True,
+            metrics_file_type=self.metrics_file_type,
+            use_compressor=self.use_compressor,
             rank=rank,
         )
         self.is_initialized = True
@@ -1263,7 +1306,12 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        self.yprov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
+        self.yprov4ml.end_run(
+            create_graph=self.create_graph,
+            create_svg=self.create_svg,
+            crate_ro_crate=self.create_ro_crate,  # (sic) argument name as in yprov4ml
+            create_card=self.create_card,
+        )
         self.is_initialized = False
 
     @check_initialized
@@ -1271,12 +1319,9 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        # Save hyperparameters
         for param_name, val in params.items():
             self.yprov4ml.log_param(
-                key=param_name,
-                value=val,
-                context="training",
+                param_name, _prov_safe(val), is_input_to=DEFAULT_PROV_CONTEXT
             )
 
     @check_initialized
@@ -1287,35 +1332,49 @@ class Prov4MLLogger(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        context: str | None = "training",
+        context: str | None = None,
         **kwargs,
     ) -> None:
-        """Logs with Prov4ML.
+        """Logs with yProv4ML.
 
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
-            identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_kinds``.
-                Defaults to 'metric'.
+            identifier (Union[str, List[str]]): unique identifier for the element.
+            kind (str, optional): one of ``self.supported_kinds``. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
-            context (Optional[str], optional): yProv4ML context. Defaults
-                to "training".
-            kwargs: keyword arguments to pass to the logger.
+            batch_idx (Optional[int], optional): batch counter, if available.
+            context (Optional[str], optional): provenance graph context node the item
+                is linked to (e.g. "Training_0"). If None, it is inferred as
+                ``<Stage>_<epoch>``: stage from the identifier prefix
+                (train/val/test), epoch tracked automatically (epoch-level metrics,
+                i.e. ending in ``_epoch`` or ``epoch_time_s``, are logged with
+                ``step=epoch``). Defaults to None.
+            kwargs: optional ``epoch`` (force the current epoch), ``is_input_to``,
+                ``is_output_to`` (override graph links of models/datasets) and
+                ``other_attrs`` (extra attributes for models/datasets).
         """
-
         if not self.should_log(batch_idx=batch_idx):
             return
 
+        step = step or 0
+        if "epoch" in kwargs:
+            self._epoch = int(kwargs["epoch"])
+        elif kind == "metric" and str(identifier).endswith(("_epoch", "epoch_time_s")):
+            self._epoch = step
+        explicit = context is not None
+        context = context if explicit else self._ctx(identifier)
+        # Graph links for models/datasets
+        links = {k: kwargs[k] for k in ("is_input_to", "is_output_to") if k in kwargs}
+        attrs = {k: _prov_safe(v) for k, v in (kwargs.get("other_attrs") or {}).items()}
+
         if kind == "metric":
-            self.yprov4ml.log_metric(key=identifier, value=item, context=context, step=step)
+            self.yprov4ml.log_metric(
+                f"{identifier}_{self._epoch}", float(item), is_output_to=context, step=step
+            )
         elif kind == "flops_pb":
             model, batch = item
             self.yprov4ml.log_flops_per_batch(
-                label=identifier, model=model, batch=batch, context=context, step=step
+                label=identifier, model=model, batch=batch, is_output_to=context, step=step
             )
         elif kind == "flops_pe":
             model, dataset = item
@@ -1323,33 +1382,45 @@ class Prov4MLLogger(Logger):
                 label=identifier,
                 model=model,
                 dataset=dataset,
-                context=context,
+                is_output_to=context,
                 step=step,
             )
         elif kind == "system":
-            self.yprov4ml.log_system_metrics(context=context, step=step)
+            self.yprov4ml.log_system_metrics(is_output_to=context, step=step)
         elif kind == "execution_time":
             self.yprov4ml.log_current_execution_time(
-                label=identifier, context=context, step=step
+                label=identifier, is_output_to=context, step=step
             )
         elif kind == "model":
-            self.yprov4ml.save_model_version(
-                model_name=identifier, model=item, context=context, step=step
+            # Checkpoint: output of this epoch, input of the next one
+            links.setdefault("is_output_to", f"Training_{self._epoch}")
+            links.setdefault("is_input_to", f"Training_{self._epoch + 1}")
+            self.yprov4ml.log_model(
+                f"{self.yprov4ml.get_artifacts_dir()}/{identifier}",
+                item,
+                other_attrs=attrs,
+                **links,
             )
         elif kind == "best_model":
+            links.setdefault("is_output_to", f"Training_{self._epoch}")
             self.yprov4ml.log_model(
-                model_name=identifier, model=item, log_model_info=True, log_model_layers=False
+                f"{self.yprov4ml.get_artifacts_dir()}/{identifier}",
+                item,
+                other_attrs=attrs,
+                **links,
             )
         elif kind == "torch":
             from torch.utils.data import DataLoader
 
             if isinstance(item, DataLoader):
-                self.yprov4ml.log_dataset(dataset_label=identifier, dataset=item)
+                links.setdefault("is_input_to", context)
+                links.setdefault("is_output_to", "Download")
+                if not explicit:
+                    links["is_input_to"] = self._ctx(identifier)
+                self.yprov4ml.log_dataset(identifier, item, other_attrs=attrs, **links)
             else:
                 self.yprov4ml.log_param(
-                    key=identifier,
-                    value=item,
-                    context=context,
+                    identifier, _prov_safe(item), is_input_to=DEFAULT_PROV_CONTEXT
                 )
         elif kind == "prov_documents":
             prov_docs = self.log_provenance_documents(create_graph=True, create_svg=True)
