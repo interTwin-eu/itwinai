@@ -73,8 +73,8 @@ def test_save_hyperparameters(logger_instance):
     params = {"learning_rate": 0.01, "batch_size": 32}
     with patch("yprov4ml.log_param") as log_param:
         logger_instance.save_hyperparameters(params)
-        log_param.assert_any_call(key="learning_rate", value=0.01, context="training")
-        log_param.assert_any_call(key="batch_size", value=32, context="training")
+        log_param.assert_any_call("learning_rate", 0.01, is_input_to="Training_0")
+        log_param.assert_any_call("batch_size", 32, is_input_to="Training_0")
 
 
 def test_log_metric(logger_instance):
@@ -85,7 +85,7 @@ def test_log_metric(logger_instance):
         logger_instance.log(item=0.95, identifier="accuracy", kind="metric", step=1)
 
         log_metric.assert_called_once_with(
-            key="accuracy", value=0.95, step=1, context="training"
+            "accuracy_0", 0.95, is_output_to="Training_0", step=1
         )
 
 
@@ -104,7 +104,7 @@ def test_log_flops_per_batch(logger_instance):
             batch=batch_mock,
             label="my_flops_pb",
             step=1,
-            context="training",
+            is_output_to="Training_0",
         )
 
 
@@ -123,7 +123,7 @@ def test_log_flops_per_epoch(logger_instance):
             dataset=dataset_mock,
             label="my_flops_pe",
             step=1,
-            context="training",
+            is_output_to="Training_0",
         )
 
 
@@ -134,7 +134,7 @@ def test_log_system(logger_instance):
     with patch("yprov4ml.log_system_metrics") as log_system:
         logger_instance.log(item=None, identifier=None, kind="system", step=1)
 
-        log_system.assert_called_once_with(context="training", step=1)
+        log_system.assert_called_once_with(is_output_to="Training_0", step=1)
 
 
 def test_log_execution_time(logger_instance):
@@ -147,7 +147,7 @@ def test_log_execution_time(logger_instance):
         )
 
         log_exec_time.assert_called_once_with(
-            label="execution_time", context="training", step=1
+            label="execution_time", is_output_to="Training_0", step=1
         )
 
 
@@ -156,11 +156,14 @@ def test_log_model(logger_instance):
     logger_instance.create_logger_context(rank=1)
 
     model_mock = MagicMock()
-    with patch("yprov4ml.save_model_version") as log_model:
+    with patch("yprov4ml.log_model") as log_model, patch(
+        "yprov4ml.get_artifacts_dir", return_value="art"
+    ):
         logger_instance.log(item=model_mock, identifier="model_v1", kind="model", step=1)
 
         log_model.assert_called_once_with(
-            model_name="model_v1", model=model_mock, context="training", step=1
+            "art/model_v1", model_mock, other_attrs={},
+            is_output_to="Training_0", is_input_to="Training_1"
         )
 
 
@@ -169,17 +172,61 @@ def test_log_best_model(logger_instance):
     logger_instance.create_logger_context(rank=1)
 
     model_mock = MagicMock()
-    with patch("yprov4ml.log_model") as log_best_model:
+    with patch("yprov4ml.log_model") as log_best_model, patch(
+        "yprov4ml.get_artifacts_dir", return_value="art"
+    ):
         logger_instance.log(
             item=model_mock, identifier="best_model_v1", kind="best_model", step=1
         )
 
         log_best_model.assert_called_once_with(
-            model_name="best_model_v1",
-            model=model_mock,
-            log_model_info=True,
-            log_model_layers=False,
+            "art/best_model_v1", model_mock, other_attrs={}, is_output_to="Training_0"
         )
+
+
+def test_log_dataset(logger_instance):
+    from torch.utils.data import DataLoader
+
+    logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
+    dl = DataLoader([1, 2, 3])
+    with patch("yprov4ml.log_dataset") as log_dataset:
+        logger_instance.log(item=dl, identifier="train_data", kind="torch")
+        log_dataset.assert_called_once_with(
+            "train_data", dl, other_attrs={}, is_input_to="Training_0", is_output_to="Download"
+        )
+
+
+def test_end_run_full_provenance(logger_instance):
+    logger_instance.should_log = MagicMock(return_value=True)
+    with patch("yprov4ml.start_run"), patch("yprov4ml.end_run") as end_run:
+        logger_instance.create_logger_context(rank=1)
+        logger_instance.destroy_logger_context()
+        end_run.assert_called_once_with(
+            create_graph=True, create_svg=True, crate_ro_crate=True, create_card=True
+        )
+
+
+def test_save_hyperparameters_sanitized(logger_instance):
+    logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
+    with patch("yprov4ml.log_param") as log_param:
+        logger_instance.save_hyperparameters({"loss": "<class 'torch.nn.CrossEntropyLoss'>"})
+        log_param.assert_called_once_with(
+            "loss", "\u2039class 'torch.nn.CrossEntropyLoss'\u203a", is_input_to="Training_0"
+        )
+
+
+def test_epoch_and_stage_inference(logger_instance):
+    logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
+    with patch("yprov4ml.log_metric") as log_metric:
+        logger_instance.log(0.5, "validation_loss_epoch", kind="metric", step=2)
+        logger_instance.log(0.4, "train_loss", kind="metric", step=7)
+    log_metric.assert_any_call(
+        "validation_loss_epoch_2", 0.5, is_output_to="Validation_2", step=2
+    )
+    log_metric.assert_any_call("train_loss_2", 0.4, is_output_to="Training_2", step=7)
 
 
 def test_log_prov_documents(logger_instance, mlflow_run):
